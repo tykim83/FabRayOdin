@@ -8,11 +8,11 @@ SPATIAL_GRID_TILE_SIZE :: 64
 SPATIAL_GRID_FONT_SIZE :: 18
 
 Spatial_Grid_Cell :: struct {
-    enemies: []^Enemy
+    enemies: [dynamic]^Enemy
 }
 
 Spatial_Grid :: struct {
-    cell: []Spatial_Grid_Cell,
+    cells: []Spatial_Grid_Cell,
     width: int, 
     height: int,
     columns: int,
@@ -20,30 +20,48 @@ Spatial_Grid :: struct {
     debug: bool,
 }
 
+get_spatial_grid_pos :: proc(pos: rl.Vector2) -> (col: int, row: int) {
+    col = int(pos.x) / SPATIAL_GRID_TILE_SIZE
+    row = int(pos.y) / SPATIAL_GRID_TILE_SIZE
+    return col, row
+}
+
 init_spatial_grid :: proc(width: int, height: int, debug := false , allocator := context.allocator, loc := #caller_location) -> Spatial_Grid {
     columns := width / SPATIAL_GRID_TILE_SIZE
     rows := height / SPATIAL_GRID_TILE_SIZE
     grid_size := columns * rows
 
-    return Spatial_Grid {
-        cell = make([]Spatial_Grid_Cell, grid_size, allocator, loc),
+    grid := Spatial_Grid {
+        cells = make([]Spatial_Grid_Cell, grid_size, allocator, loc),
         width = width,
         height = height,
         columns = columns,
         rows = rows,
         debug = debug
     }
+
+    for &cell in grid.cells {
+        cell.enemies = make([dynamic]^Enemy, 0, allocator, loc)
+    }
+
+    return grid
 }
 
-update_spatial_grid :: proc(spatial_Grid: Spatial_Grid, allocator := context.allocator, loc := #caller_location) {
+destroy_spatial_grid :: proc(grid: ^Spatial_Grid) {
+    for &cell in grid.cells {
+        delete(cell.enemies)
+    }
+    delete(grid.cells)
+}
 
+draw_spatial_grid :: proc(spatial_Grid: ^Spatial_Grid, allocator := context.allocator, loc := #caller_location) {
     if spatial_Grid.debug {
         draw_spatial_grid_lines(spatial_Grid)
         draw_spatial_grid_labels(spatial_Grid, context.temp_allocator, loc)
     }    
 }
 
-draw_spatial_grid_lines :: proc(spatial_Grid: Spatial_Grid) {
+draw_spatial_grid_lines :: proc(spatial_Grid: ^Spatial_Grid) {
     columns := spatial_Grid.columns
     rows := spatial_Grid.rows
     height := spatial_Grid.height
@@ -60,7 +78,7 @@ draw_spatial_grid_lines :: proc(spatial_Grid: Spatial_Grid) {
     }
 }
 
-draw_spatial_grid_labels :: proc(spatial_Grid: Spatial_Grid, allocator := context.allocator, loc := #caller_location) {
+draw_spatial_grid_labels :: proc(spatial_Grid: ^Spatial_Grid, allocator := context.allocator, loc := #caller_location) {
     columns := spatial_Grid.columns
     rows := spatial_Grid.rows
     height := spatial_Grid.height
