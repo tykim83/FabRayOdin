@@ -2,12 +2,25 @@ package fabrayodin
 
 import "core:fmt"
 import "core:math"
+import "core:math/rand"
 import rl "vendor:raylib"
+
+active_enemies: []^Enemy
+
+ENEMY_SPAWN_TIMER :: 3.0
+global_spawn_timer: f32 = 0.0
 
 Enemy :: struct {
     pos: rl.Vector2,
     size: rl.Vector2,
     color: rl.Color,
+}
+
+Spawn_Location :: enum {
+    Left,
+    Right,
+    Top,
+    Bottom,
 }
 
 add_enemy_to_spatial_grid :: proc(enemy: ^Enemy, grid: ^Spatial_Grid, loc := #caller_location) {
@@ -17,6 +30,38 @@ add_enemy_to_spatial_grid :: proc(enemy: ^Enemy, grid: ^Spatial_Grid, loc := #ca
     if index >= 0 && index < len(grid.cells) { 
         enemies := &grid.cells[index].enemies
         append(enemies, enemy, loc)
+        fmt.println(enemy)
+    }
+}
+
+spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
+    global_spawn_timer += frame_time
+    if global_spawn_timer > ENEMY_SPAWN_TIMER {
+        global_spawn_timer = 0.0
+        pos: rl.Vector2
+
+        sp := rand.choice_enum(Spawn_Location)
+        switch sp {
+            case .Top, .Bottom:
+                x := rand.float32() * 800
+                y := (f32)(rand.int31_max(2) * 640)
+                pos = { x, y }
+            case .Left, .Right:
+                x := (f32)(rand.int31_max(2) * 1280)
+                y := rand.float32() * 450
+                pos = { x, y }
+        }
+
+        enemy := Enemy {
+            pos = pos,
+            size = {32, 32},
+            color = rl.GRAY,
+        }
+
+        enemy_ptr := new(Enemy)
+        enemy_ptr^ = enemy 
+
+        add_enemy_to_spatial_grid(enemy_ptr, spatial_grid)
     }
 }
 

@@ -49,6 +49,10 @@ init_spatial_grid :: proc(width: int, height: int, debug := false , allocator :=
 
 destroy_spatial_grid :: proc(grid: ^Spatial_Grid) {
     for &cell in grid.cells {
+
+        for &enemy in cell.enemies {
+            free(enemy) 
+        }
         delete(cell.enemies)
     }
     delete(grid.cells)

@@ -40,41 +40,12 @@ main :: proc() {
 
     spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, true)
 
-    enemy_1 := Enemy {
-        pos = {550, 230},
-        size = {32, 32},
-        color = rl.GRAY,
-    }
-    enemy_2 := Enemy {
-        pos = {550, 300},
-        size = {32, 32},
-        color = rl.GRAY,
-    }
-    enemy_3 := Enemy {
-        pos = {600, 255},
-        size = {32, 32},
-        color = rl.GRAY,
-    }
-    enemy_4 := Enemy {
-        pos = {200, 255},
-        size = {32, 32},
-        color = rl.GRAY,
-    }
-    enemy_5 := Enemy {
-        pos = {250, 255},
-        size = {32, 32},
-        color = rl.GRAY,
-    }
-    add_enemy_to_spatial_grid(&enemy_1, &spatial_grid)
-    add_enemy_to_spatial_grid(&enemy_2, &spatial_grid)
-    add_enemy_to_spatial_grid(&enemy_3, &spatial_grid)
-    add_enemy_to_spatial_grid(&enemy_4, &spatial_grid)
-    add_enemy_to_spatial_grid(&enemy_5, &spatial_grid)
-
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
         mouse_pos := rl.GetMousePosition()
+        frame_time := rl.GetFrameTime()
 
+        spawn_enemies(frame_time, &spatial_grid)
         update_enemies(&spatial_grid, mouse_pos)
 
         rl.BeginDrawing()
