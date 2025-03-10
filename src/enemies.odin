@@ -59,7 +59,7 @@ spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
     }
 }
 
-update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Player, frame_time: f32) {
+update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Player, frame_time: f32, walls: [3]rl.Rectangle) {
 
     for &enemy in active_enemies {
         // update enemy position
@@ -90,6 +90,11 @@ update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Playe
                 
                 resolve_enemy_collision(enemy, neighbor_enemy)
             }
+        }
+
+        // Resove collisions
+        for wall in walls {
+            resolve_enemy_wall_collision(enemy, wall)
         }
     }
 }
@@ -128,6 +133,38 @@ resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
         } else {
             e1^.pos.y += overlap_y / 2.0
             e2^.pos.y -= overlap_y / 2.0
+        }
+    }
+}
+
+resolve_enemy_wall_collision :: proc(e: ^Enemy, wall: rl.Rectangle) {
+    enemy_rect := get_enemy_rect(e^)
+    if !rl.CheckCollisionRecs(enemy_rect, wall) {
+        return
+    }
+
+    left_overlap  := (enemy_rect.x + enemy_rect.width) - wall.x
+    right_overlap := (wall.x + wall.width) - enemy_rect.x
+    top_overlap   := (enemy_rect.y + enemy_rect.height) - wall.y
+    bottom_overlap:= (wall.y + wall.height) - enemy_rect.y
+
+    // Choose the smallest overlap.
+    overlap_x := math.min(left_overlap, right_overlap)
+    overlap_y := math.min(top_overlap, bottom_overlap)
+
+    if overlap_x < overlap_y {
+        // Adjust horizontally.
+        if enemy_rect.x < wall.x {
+            e^.pos.x -= overlap_x
+        } else {
+            e^.pos.x += overlap_x
+        }
+    } else {
+        // Adjust vertically.
+        if enemy_rect.y < wall.y {
+            e^.pos.y -= overlap_y
+        } else {
+            e^.pos.y += overlap_y
         }
     }
 }

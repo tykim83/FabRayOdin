@@ -49,7 +49,7 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         spawn_enemies(frame_time, &spatial_grid)
-        update_enemies(&spatial_grid, mouse_pos, player, frame_time)
+        update_enemies(&spatial_grid, mouse_pos, player, frame_time, walls)
         update_player(&player, frame_time, walls)
 
         rl.BeginDrawing()
