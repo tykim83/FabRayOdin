@@ -2,10 +2,14 @@ package fabrayodin
 
 import "core:fmt"
 import "core:strings"
+import "core:slice"
+import sa "core:container/small_array"
 import rl "vendor:raylib"
 
 SPATIAL_GRID_TILE_SIZE :: 64
 SPATIAL_GRID_FONT_SIZE :: 18
+
+global_neighbors: sa.Small_Array(9, Spatial_Grid_Cell)
 
 Spatial_Grid_Cell :: struct {
     enemies: [dynamic]^Enemy
@@ -20,13 +24,68 @@ Spatial_Grid :: struct {
     debug: bool,
 }
 
+add_enemy_to_spatial_grid :: proc(enemy: ^Enemy, grid: ^Spatial_Grid, loc := #caller_location) {
+    enemy_col, enemy_row := get_spatial_grid_pos(enemy.pos)
+    index := enemy_row * grid.columns + enemy_col
+
+    if index >= 0 && index < len(grid.cells) { 
+        enemies := &grid.cells[index].enemies
+        enemy^.grid_index = index
+        append(enemies, enemy, loc)
+        fmt.println(enemy)
+    }
+}
+
+update_enemy_position_spatial_grid :: proc(current_enemy: ^Enemy, grid: ^Spatial_Grid, loc := #caller_location) {
+    enemy_col, enemy_row := get_spatial_grid_pos(current_enemy.pos)
+    index := enemy_row * grid.columns + enemy_col
+
+    if index == current_enemy.grid_index { return }
+
+    old_index := current_enemy.grid_index
+    current_enemy^.grid_index = index
+
+    // Remove from previous index
+    for &enemy, i in grid.cells[old_index].enemies {
+        if current_enemy == enemy {
+            unordered_remove(&grid.cells[old_index].enemies, i, loc)
+        }
+    }
+
+    // Add to new index
+    append(&grid.cells[index].enemies, current_enemy, loc)
+}
+
+get_enemy_neighbors_spatial_grid :: proc(current_enemy: Enemy, grid: Spatial_Grid, allocator := context.allocator, loc := #caller_location) -> []Spatial_Grid_Cell {
+    sa.clear(&global_neighbors)
+    
+    indexes : [9]int
+    i := 0
+    for col in -1..<2 { 
+        for row in -1..<2 {
+            temp_index := current_enemy.grid_index + col + (grid.columns * row) 
+
+            if temp_index < 0 || temp_index > (grid.columns * grid.rows) { continue }
+
+            indexes[i] = temp_index
+            i += 1
+        }
+    }
+
+    for grid_index in indexes {
+        sa.append(&global_neighbors, grid.cells[grid_index])
+    }
+
+    return sa.slice(&global_neighbors)
+}
+
 get_spatial_grid_pos :: proc(pos: rl.Vector2) -> (col: int, row: int) {
     col = int(pos.x) / SPATIAL_GRID_TILE_SIZE
     row = int(pos.y) / SPATIAL_GRID_TILE_SIZE
     return col, row
 }
 
-init_spatial_grid :: proc(width: int, height: int, debug := false , allocator := context.allocator, loc := #caller_location) -> Spatial_Grid {
+init_spatial_grid :: proc(width: int, height: int, debug := false, allocator := context.allocator, loc := #caller_location) -> Spatial_Grid {
     columns := width / SPATIAL_GRID_TILE_SIZE
     rows := height / SPATIAL_GRID_TILE_SIZE
     grid_size := columns * rows
@@ -48,11 +107,7 @@ init_spatial_grid :: proc(width: int, height: int, debug := false , allocator :=
 }
 
 destroy_spatial_grid :: proc(grid: ^Spatial_Grid) {
-    for &cell in grid.cells {
-
-        for &enemy in cell.enemies {
-            free(enemy) 
-        }
+    for &cell, i in grid.cells {
         delete(cell.enemies)
     }
     delete(grid.cells)

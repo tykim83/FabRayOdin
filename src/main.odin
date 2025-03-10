@@ -38,7 +38,9 @@ main :: proc() {
 
 	rl.SetTargetFPS(60)      
 
-    spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, true)
+    spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, debug = true)
+    init_enemies()
+    player := init_player()
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -46,16 +48,19 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         spawn_enemies(frame_time, &spatial_grid)
-        update_enemies(&spatial_grid, mouse_pos)
+        update_enemies(&spatial_grid, mouse_pos, player, frame_time)
+        update_player(&player)
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
 
         draw_spatial_grid(&spatial_grid)
         draw_enemies(&spatial_grid)
-    
+        draw_player(player)
+
         rl.ClearBackground(rl.RAYWHITE)
 	}
 
     destroy_spatial_grid(&spatial_grid)
+    destroy_enemies()
 }
