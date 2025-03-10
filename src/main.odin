@@ -41,6 +41,7 @@ main :: proc() {
     spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, debug = true)
     init_enemies()
     player := init_player()
+    walls := init_tilemap()
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -49,7 +50,7 @@ main :: proc() {
 
         spawn_enemies(frame_time, &spatial_grid)
         update_enemies(&spatial_grid, mouse_pos, player, frame_time)
-        update_player(&player)
+        update_player(&player, frame_time, walls)
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
@@ -57,6 +58,7 @@ main :: proc() {
         draw_spatial_grid(&spatial_grid)
         draw_enemies(&spatial_grid)
         draw_player(player)
+        draw_tilemap(walls)
 
         rl.ClearBackground(rl.RAYWHITE)
 	}
