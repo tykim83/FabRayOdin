@@ -1,0 +1,199 @@
+package fabrayodin
+
+import "core:fmt"
+import "core:math"
+import "core:math/rand"
+import rl "vendor:raylib"
+
+active_enemies: [dynamic]^Enemy
+
+ENEMY_SPEED :: 100.0
+ENEMY_SPAWN_TIMER :: 3.0
+enemy_count := 0
+global_spawn_timer: f32 = 2.9
+
+Enemy :: struct {
+    pos: rl.Vector2,
+    grid_index: int,
+    size: rl.Vector2,
+    color: rl.Color,
+}
+
+Spawn_Location :: enum {
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
+spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
+    global_spawn_timer += frame_time
+    if enemy_count < 2 && global_spawn_timer > ENEMY_SPAWN_TIMER {
+        enemy_count += 1
+        global_spawn_timer = 0.0
+        pos: rl.Vector2
+
+        sp := rand.choice_enum(Spawn_Location)
+        switch sp {
+            case .Top, .Bottom:
+                x := rand.float32() * 800
+                y := (f32)(rand.int31_max(2) * 640)
+                pos = { x, y }
+            case .Left, .Right:
+                x := (f32)(rand.int31_max(2) * 1280)
+                y := rand.float32() * 450
+                pos = { x, y }
+        }
+
+        enemy := Enemy {
+            pos = pos,
+            size = {32, 32},
+            color = rl.BLUE,
+        }
+
+        enemy_ptr := new(Enemy)
+        enemy_ptr^ = enemy 
+
+        add_enemy_to_spatial_grid(enemy_ptr, spatial_grid)
+        append(&active_enemies, enemy_ptr)
+    }
+}
+
+update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Player, frame_time: f32, walls: [3]rl.Rectangle) {
+
+    for &enemy in active_enemies {
+        // update enemy position
+        move := rl.Vector2 {
+            player.pos.x - enemy.pos.x,
+            player.pos.y - enemy.pos.y,
+        }
+
+        len: f32 = math.sqrt(move.x * move.x + move.y * move.y)
+        if len > 0 {
+            move.x /= len
+            move.y /= len
+        }
+
+        enemy^.pos.x += move.x * ENEMY_SPEED * frame_time
+        enemy^.pos.y += move.y * ENEMY_SPEED * frame_time
+
+        // update enemy spatial grid position
+        update_enemy_position_spatial_grid(enemy, grid)
+
+        // get Neighbors 
+        neighbors_enemies := get_enemy_neighbors_spatial_grid(enemy^, grid^, context.temp_allocator)
+
+        // Resolve Enemy collision
+        for cell in neighbors_enemies {
+            for neighbor_enemy in cell.enemies {
+                if enemy == neighbor_enemy { continue }
+                
+                resolve_enemy_collision(enemy, neighbor_enemy)
+            }
+        }
+
+        // Resove collisions
+        for wall in walls {
+            resolve_enemy_wall_collision(enemy, wall)
+        }
+    }
+}
+
+resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
+    r1 := get_enemy_rect(e1^)
+    r2 := get_enemy_rect(e2^)
+    
+    if !rl.CheckCollisionRecs(r1, r2) { return }
+    
+    // Calculate overlap.
+    left_overlap  := (r1.x + r1.width) - r2.x
+    right_overlap := (r2.x + r2.width) - r1.x
+    top_overlap    := (r1.y + r1.height) - r2.y
+    bottom_overlap := (r2.y + r2.height) - r1.y
+
+    // Determine the minimum overlap in each axis.
+    overlap_x := math.min(left_overlap, right_overlap)
+    overlap_y := math.min(top_overlap, bottom_overlap)
+    
+    // Push along the axis with the smaller overlap.
+    if overlap_x < overlap_y {
+        // Adjust horizontally.
+        if e1^.pos.x < e2^.pos.x {
+            e1^.pos.x -= overlap_x / 2.0
+            e2^.pos.x += overlap_x / 2.0
+        } else {
+            e1^.pos.x += overlap_x / 2.0
+            e2^.pos.x -= overlap_x / 2.0
+        }
+    } else {
+        // Adjust vertically.
+        if e1^.pos.y < e2^.pos.y {
+            e1^.pos.y -= overlap_y / 2.0
+            e2^.pos.y += overlap_y / 2.0
+        } else {
+            e1^.pos.y += overlap_y / 2.0
+            e2^.pos.y -= overlap_y / 2.0
+        }
+    }
+}
+
+resolve_enemy_wall_collision :: proc(e: ^Enemy, wall: rl.Rectangle) {
+    enemy_rect := get_enemy_rect(e^)
+    if !rl.CheckCollisionRecs(enemy_rect, wall) {
+        return
+    }
+
+    left_overlap  := (enemy_rect.x + enemy_rect.width) - wall.x
+    right_overlap := (wall.x + wall.width) - enemy_rect.x
+    top_overlap   := (enemy_rect.y + enemy_rect.height) - wall.y
+    bottom_overlap:= (wall.y + wall.height) - enemy_rect.y
+
+    // Choose the smallest overlap.
+    overlap_x := math.min(left_overlap, right_overlap)
+    overlap_y := math.min(top_overlap, bottom_overlap)
+
+    if overlap_x < overlap_y {
+        // Adjust horizontally.
+        if enemy_rect.x < wall.x {
+            e^.pos.x -= overlap_x
+        } else {
+            e^.pos.x += overlap_x
+        }
+    } else {
+        // Adjust vertically.
+        if enemy_rect.y < wall.y {
+            e^.pos.y -= overlap_y
+        } else {
+            e^.pos.y += overlap_y
+        }
+    }
+}
+
+draw_enemies :: proc(grid: ^Spatial_Grid) {
+    for enemy in active_enemies {
+        if enemy != nil {
+            rect := get_enemy_rect(enemy^)
+            rl.DrawRectangleRec(rect, enemy^.color)
+        }       
+    }
+}
+
+get_enemy_rect :: proc(e: Enemy) -> rl.Rectangle {
+    return rl.Rectangle{
+        x = e.pos.x - e.size.x / 2,
+        y = e.pos.y - e.size.y / 2,
+        width = e.size.x,
+        height = e.size.y,
+    }
+}
+
+init_enemies :: proc(allocator := context.allocator, loc := #caller_location) {
+    active_enemies := make([dynamic]^Enemy, 0, allocator, loc)
+}
+
+destroy_enemies :: proc() {
+    for &enemy in active_enemies {
+        free(enemy) 
+    }
+    delete(active_enemies)
+}
