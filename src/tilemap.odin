@@ -11,6 +11,8 @@ TILEMAP_WIDTH :: SCREEN_WIDTH / TILEMAP_TILE_SIZE
 TILEMAP_HEIGHT :: SCREEN_HEIGHT / TILEMAP_TILE_SIZE
 TILEMAP_TILE_SIZE :: 32
 
+TILEMAP_JSON_DATA :: #load("/Assets/Tilemap/tilemap_test.json")
+
 Layer :: struct {
     name: string,
     tileset: string,
@@ -26,14 +28,15 @@ Tilemap :: struct {
 init_tilemap :: proc(allocator := context.allocator, loc := #caller_location) -> Tilemap {
     tilemap: Tilemap
 
-    dir := os.get_current_directory()
-    full_path := path.join({dir, "src/Assets/Tilemap/tilemap_test.json"})
+    // dir := os.get_current_directory()
+    // full_path := path.join({dir, "src/Assets/Tilemap/tilemap_test.json"})
 
-    if json_data, ok := os.read_entire_file(full_path, context.temp_allocator, loc); ok {    
-        json.unmarshal(json_data, &tilemap)
-    } 
+    // if json_data, ok := os.read_entire_file(full_path, context.temp_allocator, loc); ok {    
+    //     json.unmarshal(json_data, &tilemap)
+    // } 
 
-    fmt.println(tilemap)
+    json.unmarshal(TILEMAP_JSON_DATA, &tilemap)
+
     return tilemap
 }
 
