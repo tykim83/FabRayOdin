@@ -23,11 +23,11 @@ init_player :: proc() -> Player {
 }
 
 draw_player :: proc(p: Player) {
-    player_rect := get_player_rect(p)
+    player_rect := get_rect_from_pos_and_size(p)
     rl.DrawRectangleRec(player_rect, p.color)
 }
 
-update_player :: proc(p: ^Player, dt: f32, walls: [3]rl.Rectangle) {
+update_player :: proc(p: ^Player, dt: f32, tilemap: Tilemap) {
     // Update player
     dt := rl.GetFrameTime()
     move := rl.Vector2 { 0, 0 }
@@ -54,49 +54,6 @@ update_player :: proc(p: ^Player, dt: f32, walls: [3]rl.Rectangle) {
     p^.pos.x += move.x * PLAYER_SPEED * dt
     p^.pos.y += move.y * PLAYER_SPEED * dt
 
-    // Resove collisions
-    for wall in walls {
-        resolve_collision(p, wall)
-    }
-}
-
-resolve_collision :: proc(p: ^Player, wall: rl.Rectangle) {
-    player_rect := get_player_rect(p^)
-    if !rl.CheckCollisionRecs(player_rect, wall) {
-        return
-    }
-
-    left_overlap  := (player_rect.x + player_rect.width) - wall.x
-    right_overlap := (wall.x + wall.width) - player_rect.x
-    top_overlap   := (player_rect.y + player_rect.height) - wall.y
-    bottom_overlap:= (wall.y + wall.height) - player_rect.y
-
-    // Choose the smallest overlap.
-    overlap_x := math.min(left_overlap, right_overlap)
-    overlap_y := math.min(top_overlap, bottom_overlap)
-
-    if overlap_x < overlap_y {
-        // Adjust horizontally.
-        if player_rect.x < wall.x {
-            p^.pos.x -= overlap_x
-        } else {
-            p^.pos.x += overlap_x
-        }
-    } else {
-        // Adjust vertically.
-        if player_rect.y < wall.y {
-            p^.pos.y -= overlap_y
-        } else {
-            p^.pos.y += overlap_y
-        }
-    }
-}
-
-get_player_rect :: proc(p: Player) -> rl.Rectangle {
-    return rl.Rectangle{
-        x = p.pos.x - p.size.x / 2,
-        y = p.pos.y - p.size.y / 2,
-        width = p.size.x,
-        height = p.size.y,
-    }
+    // Check tilemap collision
+    check_tilemap_collision(p, tilemap)
 }
