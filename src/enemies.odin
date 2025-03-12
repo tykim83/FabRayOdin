@@ -59,7 +59,7 @@ spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
     }
 }
 
-update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Player, frame_time: f32, walls: [3]rl.Rectangle) {
+update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Player, frame_time: f32, tilemap: Tilemap) {
 
     for &enemy in active_enemies {
         // update enemy position
@@ -92,16 +92,14 @@ update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Playe
             }
         }
 
-        // Resove collisions
-        for wall in walls {
-            resolve_enemy_wall_collision(enemy, wall)
-        }
+        // Check tilemap collision
+        check_tilemap_collision(enemy, tilemap)
     }
 }
 
 resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
-    r1 := get_enemy_rect(e1^)
-    r2 := get_enemy_rect(e2^)
+    r1 := get_rect_from_pos_and_size(e1^)
+    r2 := get_rect_from_pos_and_size(e2^)
     
     if !rl.CheckCollisionRecs(r1, r2) { return }
     
@@ -137,53 +135,12 @@ resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
     }
 }
 
-resolve_enemy_wall_collision :: proc(e: ^Enemy, wall: rl.Rectangle) {
-    enemy_rect := get_enemy_rect(e^)
-    if !rl.CheckCollisionRecs(enemy_rect, wall) {
-        return
-    }
-
-    left_overlap  := (enemy_rect.x + enemy_rect.width) - wall.x
-    right_overlap := (wall.x + wall.width) - enemy_rect.x
-    top_overlap   := (enemy_rect.y + enemy_rect.height) - wall.y
-    bottom_overlap:= (wall.y + wall.height) - enemy_rect.y
-
-    // Choose the smallest overlap.
-    overlap_x := math.min(left_overlap, right_overlap)
-    overlap_y := math.min(top_overlap, bottom_overlap)
-
-    if overlap_x < overlap_y {
-        // Adjust horizontally.
-        if enemy_rect.x < wall.x {
-            e^.pos.x -= overlap_x
-        } else {
-            e^.pos.x += overlap_x
-        }
-    } else {
-        // Adjust vertically.
-        if enemy_rect.y < wall.y {
-            e^.pos.y -= overlap_y
-        } else {
-            e^.pos.y += overlap_y
-        }
-    }
-}
-
 draw_enemies :: proc(grid: ^Spatial_Grid) {
     for enemy in active_enemies {
         if enemy != nil {
-            rect := get_enemy_rect(enemy^)
+            rect := get_rect_from_pos_and_size(enemy^)
             rl.DrawRectangleRec(rect, enemy^.color)
         }       
-    }
-}
-
-get_enemy_rect :: proc(e: Enemy) -> rl.Rectangle {
-    return rl.Rectangle{
-        x = e.pos.x - e.size.x / 2,
-        y = e.pos.y - e.size.y / 2,
-        width = e.size.x,
-        height = e.size.y,
     }
 }
 
