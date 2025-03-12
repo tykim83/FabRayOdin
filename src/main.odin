@@ -9,7 +9,7 @@ import vmem "core:mem/virtual"
 import rl "vendor:raylib"
 
 SCREEN_WIDTH :: 1280
-SCREEN_HEIGHT :: 720
+SCREEN_HEIGHT :: 704
 
 main :: proc() {
     // Tracking memory leaks
