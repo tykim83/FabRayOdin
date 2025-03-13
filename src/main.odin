@@ -1,7 +1,6 @@
 package fabrayodin
 
 import "core:fmt"
-import "core:strings"
 import "core:mem"
 import vmem "core:mem/virtual"
 import rl "vendor:raylib"
@@ -38,7 +37,7 @@ main :: proc() {
 
     spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, debug = true)
     init_enemies()
-    player := init_player()
+    car := init_car()
     tilemap := init_tilemap()
 
 	for !rl.WindowShouldClose() { 
@@ -47,15 +46,15 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         spawn_enemies(frame_time, &spatial_grid)
-        update_enemies(&spatial_grid, mouse_pos, player, frame_time, tilemap)
-        update_player(&player, frame_time, tilemap)
+        update_enemies(&spatial_grid, mouse_pos, car, frame_time, tilemap)
+        update_car(&car, frame_time, tilemap)
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
 
         draw_spatial_grid(&spatial_grid)
         draw_enemies(&spatial_grid)
-        draw_player(player)
+        draw_car(car)
         draw_tilemap(tilemap)
 
         rl.ClearBackground(rl.RAYWHITE)

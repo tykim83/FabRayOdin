@@ -59,13 +59,13 @@ spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
     }
 }
 
-update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, player: Player, frame_time: f32, tilemap: Tilemap) {
+update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap: Tilemap) {
 
     for &enemy in active_enemies {
         // update enemy position
         move := rl.Vector2 {
-            player.pos.x - enemy.pos.x,
-            player.pos.y - enemy.pos.y,
+            car.rb.position.x - enemy.pos.x,
+            car.rb.position.y - enemy.pos.y,
         }
 
         len: f32 = math.sqrt(move.x * move.x + move.y * move.y)
