@@ -28,14 +28,14 @@ init_car :: proc() -> Car {
 
 update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap) {
     onRoad : bool = true
-    traction : f32 = 1.0
+    traction : f32 = 1
     throttle: f32 = 0
     steering: f32 = 0
     if rl.IsKeyDown(.W) {
-        throttle = 200.0
+        throttle = 250.0
     }
     if rl.IsKeyDown(.S) {
-        throttle = -150.0
+        throttle = -250.0
     }
     if rl.IsKeyDown(.A) {
         steering = -100.0 
