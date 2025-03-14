@@ -4,6 +4,11 @@ import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
+RG_FRICTION_MULTIPLIER :: 0.998 // Reduces velocity over time
+RG_ANGULAR_DAMPING :: 0.95    // Reduces rotation over time
+RG_MAX_SPEED :: 300.0         // Limits how fast the car can go
+RG_LATERAL_FRICTION_COEFF : f32 = 5.0 // Higher value gives stronger grip.
+
 RigidBody :: struct {
 	position: rl.Vector2,
 	velocity: rl.Vector2,
@@ -39,8 +44,8 @@ update_rigid_body :: proc(rb: ^RigidBody, dt: f32) {
     // Compute side unit vectors based on current angle.
     side : rl.Vector2 = { -math.sin(rb.angle), math.cos(rb.angle) }
     lateral_speed := linalg.dot(rb.velocity, side)
-    lateral_friction_coeff : f32 = 5.0  // Higher value gives stronger grip.
-    lateral_correction := side * (-lateral_speed * lateral_friction_coeff)
+      
+    lateral_correction := side * (-lateral_speed * RG_LATERAL_FRICTION_COEFF)
     // Apply the lateral correction force over dt.
     rb.velocity = rb.velocity + lateral_correction * dt
 
@@ -63,16 +68,15 @@ update_rigid_body :: proc(rb: ^RigidBody, dt: f32) {
     rb.torque = 0
 
     // Apply damping to stabilize overall motion.
-    rb.velocity = rb.velocity * 0.998
-    rb.angular_velocity *= 0.95
+    rb.velocity = rb.velocity * RG_FRICTION_MULTIPLIER
+    rb.angular_velocity *= RG_ANGULAR_DAMPING
 
     // Clamp Top Speed
-    max_speed : f32 = 200.0 
     speed := linalg.length(rb.velocity)
     unit_velocity := linalg.normalize0(rb.velocity)
 
-    if speed > max_speed {
-        rb.velocity = unit_velocity * max_speed
+    if speed > RG_MAX_SPEED {
+        rb.velocity = unit_velocity * RG_MAX_SPEED
     }
 }
 
