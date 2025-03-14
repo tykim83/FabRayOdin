@@ -13,7 +13,7 @@ car_texture : rl.Texture2D
 
 // Car Movement
 CAR_MASS :: 5.0
-CAR_ACCELERATION :: 250.0      // How fast the car accelerates
+CAR_ACCELERATION :: 500.0      // How fast the car accelerates
 CAR_BRAKE_FORCE :: 250.0       // How strong the car brakes
 CAR_STEERING_FORCE :: 100.0    // How strong steering turns the car
 CAR_STEERING_SPEED_FACTOR :: 10.0 // Adjusts steering at higher speeds
@@ -22,7 +22,7 @@ CAR_STEERING_SPEED_FACTOR :: 10.0 // Adjusts steering at higher speeds
 RESTITUTION :: 0.4         // How much the car bounces off walls
 DAMPING :: 0.7             // How much energy is lost after hitting something
 REAR_SLOWDOWN_FACTOR :: 0.98 // How much the car slows when the rear barely touches
-TORQUE_SCALING :: 2.0      // How much the car spins when hitting walls
+TORQUE_SCALING :: 1.0      // How much the car spins when hitting walls
 LATERAL_TORQUE_FACTOR :: 0.3 // Adjusts spin amount for angled impacts
 
 Car :: struct {
@@ -120,27 +120,22 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
         { wall.x, wall.y + wall.height }
     }
 
-    edge1 := carCorners[1] - carCorners[0]
-    axis1 := linalg.normalize0(edge1)
-    axis1_normal := rl.Vector2{ -axis1.y, axis1.x }
+    axes: []rl.Vector2 = { 
+        { -(carCorners[1].y - carCorners[0].y), carCorners[1].x - carCorners[0].x }, 
+        { -(carCorners[2].y - carCorners[1].y), carCorners[2].x - carCorners[1].x }, 
+        { 1, 0 }, { 0, 1 }
+    }
 
-    edge2 := carCorners[2] - carCorners[1]
-    axis2 := linalg.normalize0(edge2)
-    axis2_normal := rl.Vector2{ -axis2.y, axis2.x }
-
-    axes: []rl.Vector2 = { axis1_normal, axis2_normal, {1, 0}, {0, 1} }
-
-    mtv_overlap : f32 = 1e9
-    mtv_axis    : rl.Vector2 = {0, 0}
-    collision   : bool = true
+    mtv_overlap: f32 = 1e9
+    mtv_axis: rl.Vector2 = {0, 0}
+    collision: bool = true
 
     for axis in axes {
         car_min, car_max := project_polygon(axis, carCorners)
         wall_min, wall_max := project_polygon(axis, wallCorners)
 
         if car_max < wall_min || wall_max < car_min {
-            collision = false
-            break
+            return // No collision, exit early
         }
 
         overlap := math.min(car_max, wall_max) - math.max(car_min, wall_min)
@@ -150,66 +145,52 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
         }
     }
 
-    if collision {
-        wall_center := rl.Vector2{ wall.x + wall.width / 2, wall.y + wall.height / 2 }
-        diff := car.rb.position - wall_center
-        if linalg.dot(diff, mtv_axis) < 0 {
-            mtv_axis = mtv_axis * -1.0
-        }
-
-        mtv := mtv_axis * mtv_overlap
-
-        // 🛠️ **Fix: Smooth Rear Contact Slowdown**
-        movement_direction := linalg.normalize0(car.rb.velocity)
-
-        contact_point := carCorners[0]
-        min_proj := linalg.dot(contact_point, mtv_axis)
-        for point in carCorners {
-            p_proj := linalg.dot(point, mtv_axis)
-            if p_proj < min_proj {
-                min_proj = p_proj
-                contact_point = point
-            }
-        }
-
-        is_rear_contact := linalg.dot(movement_direction, contact_point - car.rb.position) < 0
-
-        if is_rear_contact {
-            // Smooth slowdown instead of instant stop
-            car.rb.velocity *= REAR_SLOWDOWN_FACTOR  // Reduce velocity very slightly to avoid flickering.
-            return  // Exit to avoid full collision resolution for rear contacts.
-        }
-
-        car.rb.position += mtv
-
-        proj := linalg.dot(car.rb.velocity, mtv_axis)
-        normal_component := mtv_axis * proj
-        tangent_component := car.rb.velocity - normal_component
-
-        effective_direction : rl.Vector2
-        if linalg.length(car.rb.velocity) > 0.1 {
-            effective_direction = linalg.normalize0(car.rb.velocity)
-        } else {
-            effective_direction = rl.Vector2{ math.cos(car.rb.angle), math.sin(car.rb.angle) }
-        }
-
-        impact_factor := math.clamp(linalg.dot(effective_direction, -mtv_axis), 0.0, 1.0)
-
-        new_normal := normal_component * -RESTITUTION
-        car.rb.velocity = (tangent_component + new_normal) * DAMPING
-
-        lever_arm := contact_point - car.rb.position
-
-        impulse_magnitude := (1 + RESTITUTION) * math.abs(proj) * car.rb.mass * impact_factor
-        impulse := mtv_axis * impulse_magnitude
-
-        torque_impulse := (lever_arm.x * impulse.y - lever_arm.y * impulse.x) * TORQUE_SCALING
-
-        lateral_impact_factor := 1.0 - math.abs(linalg.dot(lever_arm, mtv_axis))
-        lateral_impact_factor = math.clamp(lateral_impact_factor, LATERAL_TORQUE_FACTOR, 1.0)
-
-        torque_impulse *= lateral_impact_factor
-
-        car.rb.angular_velocity += torque_impulse / car.rb.inertia
+    // Make sure the MTV pushes the car away from the wall.
+    if linalg.dot(car.rb.position - rl.Vector2{ wall.x + wall.width / 2, wall.y + wall.height / 2 }, mtv_axis) < 0 {
+        mtv_axis *= -1.0
     }
+
+    mtv := mtv_axis * mtv_overlap
+    movement_direction := linalg.normalize0(car.rb.velocity)
+
+    // Find the deepest collision point
+    contact_point := carCorners[0]
+    min_proj := linalg.dot(contact_point, mtv_axis)
+    for point in carCorners {
+        p_proj := linalg.dot(point, mtv_axis)
+        if p_proj < min_proj {
+            min_proj = p_proj
+            contact_point = point
+        }
+    }
+
+    // Check if the contact is at the rear of the car
+    if linalg.dot(movement_direction, contact_point - car.rb.position) < 0 {
+        car.rb.velocity *= REAR_SLOWDOWN_FACTOR
+        return // Exit to prevent unnecessary calculations
+    }
+
+    car.rb.position += mtv
+
+    proj := linalg.dot(car.rb.velocity, mtv_axis)
+    normal_component := mtv_axis * proj
+    tangent_component := car.rb.velocity - normal_component
+
+    impact_factor := math.clamp(linalg.dot(movement_direction, -mtv_axis), 0.0, 1.0)
+    car.rb.velocity = (tangent_component + normal_component * -RESTITUTION) * DAMPING
+
+    // Compute torque impulse
+    lever_arm := contact_point - car.rb.position
+    impulse_magnitude := (1 + RESTITUTION) * math.abs(proj) * car.rb.mass * impact_factor
+
+    // Reduce rotation when front hits head-on
+    front_axis := rl.Vector2{ math.cos(car.rb.angle), math.sin(car.rb.angle) }
+    front_impact_factor := math.abs(linalg.dot(front_axis, -mtv_axis))  // 1 = full front hit, 0 = side hit
+
+    // 🔧 Reduce torque effect when hitting head-on
+    torque_scaling := TORQUE_SCALING * (1.0 - front_impact_factor * 0.8)
+
+    torque_impulse := (lever_arm.x * mtv_axis.y - lever_arm.y * mtv_axis.x) * impulse_magnitude * torque_scaling
+
+    car.rb.angular_velocity += torque_impulse / car.rb.inertia
 }
