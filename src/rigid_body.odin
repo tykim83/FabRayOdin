@@ -51,6 +51,11 @@ update_rigid_body :: proc(rb: ^RigidBody, dt: f32) {
     rb.position = rb.position + rb.velocity * dt
     rb.forces = {0, 0}
 
+    // to remove
+    // Update rb.rect to reflect the new position.
+    rb.rect.x = rb.position.x - rb.half_size.x
+    rb.rect.y = rb.position.y - rb.half_size.y
+
     // Angular integration:
     angAcc := rb.torque / rb.inertia
     rb.angular_velocity += angAcc * dt
@@ -75,6 +80,17 @@ draw_rigid_body :: proc(rb: RigidBody, texture: rl.Texture2D) {
     src_rect := rl.Rectangle{ x = 0, y = 0, width = f32(texture.width), height = f32(texture.height) }
     dest_rect, origin, rotation := get_rigid_body_draw_params(rb)
     rl.DrawTexturePro(texture, src_rect, dest_rect, origin, rotation, rl.WHITE)
+
+    dest_rect_1 := rl.Rectangle{
+        x = rb.position.x,
+        y = rb.position.y,
+        width = rb.half_size.x * 2.0,
+        height = rb.half_size.y * 2.0,
+    }
+    origin_1 := rb.half_size  // rotate about the center
+    rotation_1 := rb.angle * (180.0 / math.PI)  // convert to degrees
+    
+    rl.DrawRectanglePro(dest_rect_1, origin_1, rotation_1, rl.WHITE)
 
     corners := get_rigid_body_collision_box(rb)
     rl.DrawLineV(corners[0], corners[1], rl.GREEN)
@@ -111,8 +127,6 @@ get_rigid_body_draw_params :: proc(rb: RigidBody) -> (rl.Rectangle, rl.Vector2, 
 
 get_rigid_body_collision_box :: proc(rb: RigidBody) -> [4]rl.Vector2 {
     // Define the local corners of the box relative to its center.
-    // Since rb.half_size represents half the width and height,
-    // the corners are defined in object space.
     local_corners: [4]rl.Vector2 = {
         { -rb.half_size.x, -rb.half_size.y }, // bottom-left
         {  rb.half_size.x, -rb.half_size.y }, // bottom-right
