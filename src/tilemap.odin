@@ -81,12 +81,6 @@ check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
     }
 }
 
-get_tilemap_grid_position :: proc(pos: rl.Vector2) -> Vector2 {
-    grid_x := i32(pos.x) / TILEMAP_TILE_SIZE
-    grid_y := i32(pos.y) / TILEMAP_TILE_SIZE
-    return { grid_x, grid_y }
-}
-
 @(private = "file")
 resolve_collision :: proc(entity: ^$T, tile: rl.Rectangle) {
     entity_rect := get_rect_from_pos_and_size(entity)

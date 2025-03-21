@@ -38,23 +38,7 @@ main :: proc() {
     init_enemies(); defer destroy_enemies()
     car := init_car()
     tilemap := init_tilemap()
-
-    // Pathfinder test
-    path_min : Vector2 = {0, 0}
-	path_max : Vector2 = {TILEMAP_WIDTH - 1, TILEMAP_HEIGHT - 1}
-    astar := init_grid(path_min, path_max)
-    defer destroy_grid(&astar)
-
-    for layer in tilemap.layers {
-        if !layer.is_visible { continue }
-
-        for tile, index in layer.data {
-            if (tile == -1) { continue }
-            row := index / TILEMAP_WIDTH
-            col := index % TILEMAP_WIDTH
-            set_blocked_tile(&astar, {i32(col),i32(row)})
-        }
-    }
+    astar_grid := init_pathfinding(tilemap); defer destroy_pathfinding(&astar_grid)
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -64,7 +48,7 @@ main :: proc() {
         // Update Game
         spawn_enemies(frame_time)
         update_car(&car, frame_time, tilemap)
-        update_enemies(mouse_pos, car, frame_time, tilemap)   
+        update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
@@ -73,6 +57,7 @@ main :: proc() {
         draw_tilemap(tilemap)
         draw_enemies()
         draw_car(car)
+        draw_pathfinding(car, astar_grid)
 
         rl.ClearBackground(rl.RAYWHITE)
 	}

@@ -37,9 +37,13 @@ destroy_enemies :: proc() {
     delete(active_enemies)
 }
 
-update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap: Tilemap) {
+update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap: Tilemap, astar_grid: Astar_Grid) {
 
     for &enemy in active_enemies {
+        // get path
+
+        // path := find_astar_path(astar_grid)
+
         // update enemy position
         move := rl.Vector2 {
             car.rb.position.x - enemy.pos.x,

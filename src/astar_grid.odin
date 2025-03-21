@@ -10,33 +10,33 @@ Vector2 :: [2]i32
 
 SMALL_TILE_SIZE : Vector2 : {1, 1}
 
-Grid :: struct {
+Astar_Grid :: struct {
     region: struct { min, max: Vector2 },
     cols: i32,
     rows: i32,
-    tiles : []GridTile,
+    tiles : []Astar_Grid_Tile,
     compute_heuristic: proc(a, b: ^AStar_Node) -> f32,
     diagonal_mode: AStar_Diagonal_Mode,
     allocator : mem.Allocator
 }
 
-Path :: struct {
+Astar_Path :: struct {
     nodes: []^AStar_Node,
     arena: vmem.Arena,
 }
 
 AStar_Node :: struct {
-    tile   : ^GridTile,
+    tile   : ^Astar_Grid_Tile,
     fCost  : f32, 
     gCost  : f32,  
     hCost  : f32,
     parent : ^AStar_Node,
 }
 
-GridTile :: struct {
+Astar_Grid_Tile :: struct {
     pos       : [2]f32,
-    isWalkable: bool,
-    moveCost  : f32,
+    is_walkable: bool,
+    move_cost  : f32,
 }
 
 AStar_Diagonal_Mode :: enum {
@@ -70,22 +70,22 @@ heuristic_chebyshev :: proc(a, b: ^AStar_Node) -> f32 {
     return math.max(dx, dy) * 10
 }
 
-init_grid :: proc(region_min, region_max: Vector2, heuristic := heuristic_euclidean, diagonal := AStar_Diagonal_Mode.NO_CORNER_CUT, allocator := context.allocator, loc := #caller_location) -> Grid {
+init_astar_grid :: proc(region_min, region_max: Vector2, heuristic := heuristic_euclidean, diagonal := AStar_Diagonal_Mode.NO_CORNER_CUT, allocator := context.allocator, loc := #caller_location) -> Astar_Grid {
     area := region_max - region_min
     cols := area.x
     rows := area.y
-    grid_tiles := make([]GridTile, cols * rows, allocator, loc)
+    grid_tiles := make([]Astar_Grid_Tile, cols * rows, allocator, loc)
 
     for row in 0..<rows {
         for col in 0..<cols {
-            grid_tiles[row * cols + col] = GridTile {
+            grid_tiles[row * cols + col] = Astar_Grid_Tile {
                 pos = { f32(col), f32(row) },
-                isWalkable = true,
-                moveCost  = 1.0,
+                is_walkable = true,
+                move_cost  = 1.0,
             }
         }
     }
-    return Grid {
+    return Astar_Grid {
         region = { region_min, region_max },
         tiles = grid_tiles,
         cols = cols,
@@ -96,17 +96,17 @@ init_grid :: proc(region_min, region_max: Vector2, heuristic := heuristic_euclid
     }
 }
 
-destroy_grid :: proc(grid: ^Grid, loc := #caller_location) {
+destroy_astar_grid :: proc(grid: ^Astar_Grid, loc := #caller_location) {
     if grid == nil { return }
     delete(grid.tiles, grid.allocator, loc)
 }
 
-set_blocked_tile :: proc(grid: ^Grid, pos: Vector2) {
-    grid.tiles[to_index(pos, grid.cols)].isWalkable = false;
+set_blocked_tile :: proc(grid: ^Astar_Grid, pos: Vector2) {
+    grid.tiles[to_index(pos, grid.cols)].is_walkable = false;
 }
 
-set_tile_cost :: proc(grid: ^Grid, pos: Vector2, cost: f32) {
-    grid.tiles[to_index(pos, grid.cols)].moveCost = cost;
+set_tile_cost :: proc(grid: ^Astar_Grid, pos: Vector2, cost: f32) {
+    grid.tiles[to_index(pos, grid.cols)].move_cost = cost;
 }
 
 // Debug
@@ -115,7 +115,7 @@ when ODIN_DEBUG {
     closedSetHistory: [dynamic][]^AStar_Node
 }
 
-find_path :: proc(grid: Grid, startCoord, targetCoord : Vector2, size := SMALL_TILE_SIZE, loc := #caller_location) -> (Path, bool) {
+find_astar_path :: proc(grid: Astar_Grid, startCoord, targetCoord : Vector2, size := SMALL_TILE_SIZE, loc := #caller_location) -> (Astar_Path, bool) {
     cols := grid.cols
     rows := grid.rows
     found:= false
@@ -123,8 +123,8 @@ find_path :: proc(grid: Grid, startCoord, targetCoord : Vector2, size := SMALL_T
     path_arena: vmem.Arena
     path_arena_allocator := vmem.arena_allocator(&path_arena)
 
-    fail_path :: proc() -> (Path, bool) {
-        return Path {}, false
+    fail_path :: proc() -> (Astar_Path, bool) {
+        return Astar_Path {}, false
     }
     
     // Validate coordinates.
@@ -151,7 +151,7 @@ find_path :: proc(grid: Grid, startCoord, targetCoord : Vector2, size := SMALL_T
     valid_target : Vector2 = find_nearest_valid_target(grid, targetCoord, size);
     target := &astar_nodes[to_index(valid_target, cols)];
 
-    if !target.tile.isWalkable {
+    if !target.tile.is_walkable {
         return fail_path()
     }
 
@@ -194,7 +194,7 @@ find_path :: proc(grid: Grid, startCoord, targetCoord : Vector2, size := SMALL_T
         // Process each neighbour.
         neighbours := get_neighbours(grid, size, current, astar_nodes)
         for &neighbour in neighbours {
-            if !neighbour.tile.isWalkable {
+            if !neighbour.tile.is_walkable {
                 continue
             }
             // If neighbour is in closedSet, skip it.
@@ -222,13 +222,13 @@ find_path :: proc(grid: Grid, startCoord, targetCoord : Vector2, size := SMALL_T
     }
 
     path := retrace_path(start, target, path_arena_allocator)
-    return Path {
+    return Astar_Path {
         nodes = path,
         arena = path_arena,
     }, true
 }
 
-destroy_path :: proc (path: ^Path, loc := #caller_location) {
+destroy_astar_path :: proc (path: ^Astar_Path, loc := #caller_location) {
     if path == nil || len(path.nodes) == 0 {
         return 
     }
@@ -252,7 +252,7 @@ retrace_path :: proc(start, target: ^AStar_Node, allocator := context.allocator,
 }
 
 @(private = "file")
-get_neighbours :: proc(grid: Grid, size: Vector2, node: ^AStar_Node, nodes: []AStar_Node, allocator := context.temp_allocator, loc := #caller_location) -> []^AStar_Node {
+get_neighbours :: proc(grid: Astar_Grid, size: Vector2, node: ^AStar_Node, nodes: []AStar_Node, allocator := context.temp_allocator, loc := #caller_location) -> []^AStar_Node {
     neighbours := make([dynamic]^AStar_Node, 0, allocator, loc)
 
     pos : Vector2 = { i32(node.tile.pos.x), i32(node.tile.pos.y) }
@@ -295,7 +295,7 @@ get_neighbours :: proc(grid: Grid, size: Vector2, node: ^AStar_Node, nodes: []AS
 }
 
 @(private = "file")
-find_nearest_valid_target :: proc(grid: Grid, target: Vector2, size: Vector2) -> Vector2 {
+find_nearest_valid_target :: proc(grid: Astar_Grid, target: Vector2, size: Vector2) -> Vector2 {
     if is_valid_footprint(grid, target, size) {
         return target;
     }
@@ -337,14 +337,22 @@ is_node_in_closed_set :: proc(closedSet: []^AStar_Node, node: ^AStar_Node) -> bo
 }
 
 @(private = "file")
-is_valid_tile :: proc(grid: Grid, pos: Vector2) -> bool {
-    return pos.x >= grid.region.min.x && pos.x < grid.region.max.x &&
-           pos.y >= grid.region.min.y && pos.y < grid.region.max.y &&
-           grid.tiles[to_index(pos, grid.cols)].isWalkable;
+is_valid_tile :: proc(grid: Astar_Grid, pos: Vector2) -> bool {
+    if pos.x < grid.region.min.x || pos.x >= grid.region.max.x ||
+       pos.y < grid.region.min.y || pos.y >= grid.region.max.y {
+        return false;
+    }
+
+    index := to_index(pos, grid.cols)
+    if int(index) >= len(grid.tiles) {
+        return false
+    }
+
+    return grid.tiles[index].is_walkable;
 }
 
 @(private = "file")
-is_valid_footprint :: proc(grid: Grid, pos: Vector2, size: Vector2) -> bool {
+is_valid_footprint :: proc(grid: Astar_Grid, pos: Vector2, size: Vector2) -> bool {
     if size == SMALL_TILE_SIZE {
         return is_valid_tile(grid, pos);
     }
@@ -368,7 +376,7 @@ movement_cost :: proc(a, b: ^AStar_Node) -> f32 {
     if dx > 0 && dy > 0 {
         base = 14.0
     } 
-    return base * b.tile.moveCost
+    return base * b.tile.move_cost
 }
 
 @(private = "file")
