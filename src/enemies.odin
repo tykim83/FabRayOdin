@@ -28,7 +28,7 @@ Spawn_Location :: enum {
 
 spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
     global_spawn_timer += frame_time
-    if enemy_count < 2 && global_spawn_timer > ENEMY_SPAWN_TIMER {
+    if enemy_count < 1 && global_spawn_timer > ENEMY_SPAWN_TIMER {
         enemy_count += 1
         global_spawn_timer = 0.0
         pos: rl.Vector2

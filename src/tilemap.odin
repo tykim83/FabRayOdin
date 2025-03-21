@@ -127,3 +127,9 @@ resolve_collision :: proc(entity: ^$T, tile: rl.Rectangle) {
         }
     }
 }
+
+get_tilemap_grid_position :: proc(pos: rl.Vector2) -> Vector2 {
+    grid_x := i32(pos.x) / TILEMAP_TILE_SIZE
+    grid_y := i32(pos.y) / TILEMAP_TILE_SIZE
+    return { grid_x, grid_y }
+}
