@@ -26,7 +26,57 @@ Spawn_Location :: enum {
     Bottom,
 }
 
-spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
+init_enemies :: proc(allocator := context.allocator, loc := #caller_location) {
+    active_enemies := make([dynamic]^Enemy, 0, allocator, loc)
+}
+
+destroy_enemies :: proc() {
+    for &enemy in active_enemies {
+        free(enemy) 
+    }
+    delete(active_enemies)
+}
+
+update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap: Tilemap) {
+
+    for &enemy in active_enemies {
+        // update enemy position
+        move := rl.Vector2 {
+            car.rb.position.x - enemy.pos.x,
+            car.rb.position.y - enemy.pos.y,
+        }
+
+        len: f32 = math.sqrt(move.x * move.x + move.y * move.y)
+        if len > 0 {
+            move.x /= len
+            move.y /= len
+        }
+
+        enemy^.pos.x += move.x * ENEMY_SPEED * frame_time
+        enemy^.pos.y += move.y * ENEMY_SPEED * frame_time
+
+        // Resolve Enemy collision
+        for other_enemy_enemy in active_enemies {
+            if enemy == other_enemy_enemy { continue }
+            
+            resolve_enemy_collision(enemy, other_enemy_enemy)
+        }
+
+        // Check tilemap collision
+        check_tilemap_collision(enemy, tilemap)
+    }
+}
+
+draw_enemies :: proc() {
+    for enemy in active_enemies {
+        if enemy != nil {
+            rect := get_rect_from_pos_and_size(enemy^)
+            rl.DrawRectangleRec(rect, enemy^.color)
+        }       
+    }
+}
+
+spawn_enemies :: proc(frame_time: f32) {
     global_spawn_timer += frame_time
     if enemy_count < 1 && global_spawn_timer > ENEMY_SPAWN_TIMER {
         enemy_count += 1
@@ -54,49 +104,11 @@ spawn_enemies :: proc(frame_time: f32, spatial_grid: ^Spatial_Grid) {
         enemy_ptr := new(Enemy)
         enemy_ptr^ = enemy 
 
-        add_enemy_to_spatial_grid(enemy_ptr, spatial_grid)
         append(&active_enemies, enemy_ptr)
     }
 }
 
-update_enemies :: proc(grid: ^Spatial_Grid, mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap: Tilemap) {
-
-    for &enemy in active_enemies {
-        // update enemy position
-        move := rl.Vector2 {
-            car.rb.position.x - enemy.pos.x,
-            car.rb.position.y - enemy.pos.y,
-        }
-
-        len: f32 = math.sqrt(move.x * move.x + move.y * move.y)
-        if len > 0 {
-            move.x /= len
-            move.y /= len
-        }
-
-        enemy^.pos.x += move.x * ENEMY_SPEED * frame_time
-        enemy^.pos.y += move.y * ENEMY_SPEED * frame_time
-
-        // update enemy spatial grid position
-        update_enemy_position_spatial_grid(enemy, grid)
-
-        // get Neighbors 
-        neighbors_enemies := get_enemy_neighbors_spatial_grid(enemy^, grid^, context.temp_allocator)
-
-        // Resolve Enemy collision
-        for cell in neighbors_enemies {
-            for neighbor_enemy in cell.enemies {
-                if enemy == neighbor_enemy { continue }
-                
-                resolve_enemy_collision(enemy, neighbor_enemy)
-            }
-        }
-
-        // Check tilemap collision
-        check_tilemap_collision(enemy, tilemap)
-    }
-}
-
+@(private = "file")
 resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
     r1 := get_rect_from_pos_and_size(e1^)
     r2 := get_rect_from_pos_and_size(e2^)
@@ -133,24 +145,4 @@ resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
             e2^.pos.y -= overlap_y / 2.0
         }
     }
-}
-
-draw_enemies :: proc(grid: ^Spatial_Grid) {
-    for enemy in active_enemies {
-        if enemy != nil {
-            rect := get_rect_from_pos_and_size(enemy^)
-            rl.DrawRectangleRec(rect, enemy^.color)
-        }       
-    }
-}
-
-init_enemies :: proc(allocator := context.allocator, loc := #caller_location) {
-    active_enemies := make([dynamic]^Enemy, 0, allocator, loc)
-}
-
-destroy_enemies :: proc() {
-    for &enemy in active_enemies {
-        free(enemy) 
-    }
-    delete(active_enemies)
 }

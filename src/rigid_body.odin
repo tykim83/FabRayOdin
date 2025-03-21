@@ -116,19 +116,6 @@ add_rigid_body_torque :: proc(rb: ^RigidBody, torque: f32) {
 	rb.torque += torque
 }
 
-get_rigid_body_draw_params :: proc(rb: RigidBody) -> (rl.Rectangle, rl.Vector2, f32) {
-    dest_rect : rl.Rectangle = {
-        x = rb.position.x - 2,
-        y = rb.position.y,
-        width  = 70,
-        height = 34,
-    }
-    origin : = rb.half_size
-    rotation := rb.angle * (180.0 / math.PI)
-    
-    return dest_rect, origin, rotation
-}
-
 get_rigid_body_collision_box :: proc(rb: RigidBody) -> [4]rl.Vector2 {
     // Define the local corners of the box relative to its center.
     local_corners: [4]rl.Vector2 = {
@@ -162,4 +149,18 @@ get_rigid_body_collision_box :: proc(rb: RigidBody) -> [4]rl.Vector2 {
     }
 
     return corners
+}
+
+@(private = "file")
+get_rigid_body_draw_params :: proc(rb: RigidBody) -> (rl.Rectangle, rl.Vector2, f32) {
+    dest_rect : rl.Rectangle = {
+        x = rb.position.x - 2,
+        y = rb.position.y,
+        width  = 70,
+        height = 34,
+    }
+    origin : = rb.half_size
+    rotation := rb.angle * (180.0 / math.PI)
+    
+    return dest_rect, origin, rotation
 }

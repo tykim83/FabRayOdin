@@ -20,12 +20,16 @@ Layer :: struct {
 }
 
 Tilemap :: struct {
-    layers: []Layer
+    layers: []Layer,
+    collision_rect : []rl.Rectangle
 }
 
 init_tilemap :: proc(allocator := context.allocator, loc := #caller_location) -> Tilemap {
     tilemap: Tilemap
-    json.unmarshal(TILEMAP_JSON_DATA, &tilemap)
+    json.unmarshal(TILEMAP_JSON_DATA, &tilemap, allocator = allocator)
+
+    tilemap.collision_rect = create_tilemap_collision_rects(tilemap, allocator, loc)
+
     return tilemap
 }
 
@@ -34,43 +38,24 @@ draw_tilemap :: proc(tilemap: Tilemap) {
         if !layer.is_visible { continue }
 
         for tile, index in layer.data {
-            if (tile == -1) { continue }
             row := index / TILEMAP_WIDTH
             col := index % TILEMAP_WIDTH
 
             tile_x := col * TILEMAP_TILE_SIZE
             tile_y := row * TILEMAP_TILE_SIZE
 
+            // Draw floor
+            if (tile == -1) { 
+                control := row % 2 == 1 ? 1 : 0
+                color := index % 2 == control ? rl.WHITE : rl.LIGHTGRAY
+                rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, color)
+                continue
+            }
+
+            // Draw Walls
             rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.RED)
         }
     }
-}
-
-get_tilemap_collision_rects :: proc(tilemap: Tilemap, allocator := context.allocator, loc := #caller_location) -> [dynamic]rl.Rectangle {
-    rects := make([dynamic]rl.Rectangle, 0, context.allocator, loc)
-
-    for layer in tilemap.layers {
-        if !layer.is_collision { continue }
-
-        for tile, index in layer.data {
-            if (tile == -1) { continue }
-
-            row := index / TILEMAP_WIDTH
-            col := index % TILEMAP_WIDTH
-            tile_x := col * TILEMAP_TILE_SIZE
-            tile_y := row * TILEMAP_TILE_SIZE
-            tile_rect := rl.Rectangle { 
-                x = f32(tile_x), 
-                y = f32(tile_y), 
-                width = TILEMAP_TILE_SIZE, 
-                height = TILEMAP_TILE_SIZE 
-            }
-
-            append(&rects, tile_rect, loc)
-        }
-    }
-
-    return rects
 }
 
 check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
@@ -96,6 +81,13 @@ check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
     }
 }
 
+get_tilemap_grid_position :: proc(pos: rl.Vector2) -> Vector2 {
+    grid_x := i32(pos.x) / TILEMAP_TILE_SIZE
+    grid_y := i32(pos.y) / TILEMAP_TILE_SIZE
+    return { grid_x, grid_y }
+}
+
+@(private = "file")
 resolve_collision :: proc(entity: ^$T, tile: rl.Rectangle) {
     entity_rect := get_rect_from_pos_and_size(entity)
     if !rl.CheckCollisionRecs(entity_rect, tile) {
@@ -128,8 +120,30 @@ resolve_collision :: proc(entity: ^$T, tile: rl.Rectangle) {
     }
 }
 
-get_tilemap_grid_position :: proc(pos: rl.Vector2) -> Vector2 {
-    grid_x := i32(pos.x) / TILEMAP_TILE_SIZE
-    grid_y := i32(pos.y) / TILEMAP_TILE_SIZE
-    return { grid_x, grid_y }
+@(private = "file")
+create_tilemap_collision_rects :: proc(tilemap: Tilemap, allocator := context.allocator, loc := #caller_location) -> []rl.Rectangle {
+    rects := make([dynamic]rl.Rectangle, 0, context.allocator, loc)
+
+    for layer in tilemap.layers {
+        if !layer.is_collision { continue }
+
+        for tile, index in layer.data {
+            if (tile == -1) { continue }
+
+            row := index / TILEMAP_WIDTH
+            col := index % TILEMAP_WIDTH
+            tile_x := col * TILEMAP_TILE_SIZE
+            tile_y := row * TILEMAP_TILE_SIZE
+            tile_rect := rl.Rectangle { 
+                x = f32(tile_x), 
+                y = f32(tile_y), 
+                width = TILEMAP_TILE_SIZE, 
+                height = TILEMAP_TILE_SIZE 
+            }
+
+            append(&rects, tile_rect, loc)
+        }
+    }
+
+    return rects[:]
 }

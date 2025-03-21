@@ -1,10 +1,10 @@
 package fabrayodin
 
 import "core:os"
-import path "core:path/slashpath"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
+import path "core:path/slashpath"
 import rl "vendor:raylib"
 
 START_CAR_POSITION : rl.Vector2 : { 400, 280 }
@@ -82,9 +82,7 @@ update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap) {
 	update_rigid_body(&car.rb, dt)
 
     // Resolve collisions
-    walls := get_tilemap_collision_rects(tilemap)
-
-    for wall in walls {
+    for wall in tilemap.collision_rect {
         resolve_collision_car_wall_sat(car, wall)  
     }
 }
@@ -97,19 +95,7 @@ draw_car :: proc(car: Car) {
 	draw_rigid_body(car.rb, car_texture)
 }
 
-// Project a set of points onto an axis.
-// Returns the minimum and maximum projection values.
-project_polygon :: proc(axis: rl.Vector2, points: [4]rl.Vector2) -> (f32, f32) {
-    min_val := linalg.dot(points[0], axis)
-    max_val := min_val
-    for point in points {
-        p := linalg.dot(point, axis)
-        if p < min_val { min_val = p }
-        if p > max_val { max_val = p }
-    }
-    return min_val, max_val
-}
-
+@(private = "file")
 resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
     carCorners := get_rigid_body_collision_box(car.rb)
 
@@ -193,4 +179,16 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
     torque_impulse := (lever_arm.x * mtv_axis.y - lever_arm.y * mtv_axis.x) * impulse_magnitude * torque_scaling
 
     car.rb.angular_velocity += torque_impulse / car.rb.inertia
+}
+
+@(private = "file")
+project_polygon :: proc(axis: rl.Vector2, points: [4]rl.Vector2) -> (f32, f32) {
+    min_val := linalg.dot(points[0], axis)
+    max_val := min_val
+    for point in points {
+        p := linalg.dot(point, axis)
+        if p < min_val { min_val = p }
+        if p > max_val { max_val = p }
+    }
+    return min_val, max_val
 }

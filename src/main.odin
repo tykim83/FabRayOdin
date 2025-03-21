@@ -35,7 +35,6 @@ main :: proc() {
 	rl.SetTargetFPS(60)      
 
     // Init Game
-    spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, debug = true); defer destroy_spatial_grid(&spatial_grid)
     init_enemies(); defer destroy_enemies()
     car := init_car()
     tilemap := init_tilemap()
@@ -63,19 +62,17 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         // Update Game
-        spawn_enemies(frame_time, &spatial_grid)
+        spawn_enemies(frame_time)
         update_car(&car, frame_time, tilemap)
-        update_enemies(&spatial_grid, mouse_pos, car, frame_time, tilemap)   
-        update_astar_path(car, &spatial_grid, astar)
+        update_enemies(mouse_pos, car, frame_time, tilemap)   
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
 
         // Draw Game
-        draw_spatial_grid(&spatial_grid)
-        draw_enemies(&spatial_grid)
-        draw_car(car)
         draw_tilemap(tilemap)
+        draw_enemies()
+        draw_car(car)
 
         rl.ClearBackground(rl.RAYWHITE)
 	}
