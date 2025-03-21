@@ -12,7 +12,8 @@ SPATIAL_GRID_FONT_SIZE :: 18
 global_neighbors: sa.Small_Array(9, Spatial_Grid_Cell)
 
 Spatial_Grid_Cell :: struct {
-    enemies: [dynamic]^Enemy
+    enemies: [dynamic]^Enemy,
+    path: ^Path,
 }
 
 Spatial_Grid :: struct {
@@ -21,6 +22,7 @@ Spatial_Grid :: struct {
     height: int,
     columns: int,
     rows: int,
+    player_sg_pos: [2]int,
     debug: bool,
 }
 
@@ -33,6 +35,45 @@ add_enemy_to_spatial_grid :: proc(enemy: ^Enemy, grid: ^Spatial_Grid, loc := #ca
         enemy^.grid_index = index
         append(enemies, enemy, loc)
         fmt.println(enemy)
+    }
+}
+
+update_astar_path :: proc(car: Car, grid: ^Spatial_Grid, astar: Grid, loc := #caller_location) {
+    current_car_col, current_car_row := get_spatial_grid_pos(car.rb.position)
+    if grid.player_sg_pos == {current_car_col, current_car_row} {
+        return
+    }
+
+    grid.player_sg_pos = {current_car_col, current_car_row}
+    fmt.println(grid.player_sg_pos)
+
+    for &cell, i in grid.cells {
+        if len(cell.enemies) > 0 {
+            if cell.path != nil {
+                destroy_path(cell.path)
+            }
+
+            enemy_tilemap_pos := get_tilemap_grid_position(cell.enemies[0].pos)
+            player_tilemap_pos : Vector2 = { i32(grid.player_sg_pos.x), i32(grid.player_sg_pos.y) }
+            fmt.println(enemy_tilemap_pos)
+            fmt.println(player_tilemap_pos)
+            path, _ := find_path(astar, enemy_tilemap_pos, player_tilemap_pos)
+            // cell.path = &path
+
+            // printPath(path.nodes)
+
+            for node in path.nodes {
+                rl.DrawRectangle(i32(node.tile.pos.x * 32), i32(node.tile.pos.y * 32), 32, 32, rl.GREEN)
+            }
+
+            // for node in path.nodes {
+            //     rl.DrawRectangle(i32(node.tile.pos.y) * 32, i32(node.tile.pos.y) * 32, 32, 32, rl.RED)
+            // }
+            // enemy_col, enemy_row := get_spatial_grid_pos(cell.enemies[0].pos)
+            // fmt.printfln("{} {}", enemy_col, enemy_row)
+
+            //fmt.println(cell.path)
+        }
     }
 }
 
@@ -96,6 +137,7 @@ init_spatial_grid :: proc(width: int, height: int, debug := false, allocator := 
         height = height,
         columns = columns,
         rows = rows,
+        player_sg_pos = { 0, 0 },
         debug = debug
     }
 
@@ -109,6 +151,7 @@ init_spatial_grid :: proc(width: int, height: int, debug := false, allocator := 
 destroy_spatial_grid :: proc(grid: ^Spatial_Grid) {
     for &cell, i in grid.cells {
         delete(cell.enemies)
+        destroy_path(cell.path)
     }
     delete(grid.cells)
 }
@@ -155,6 +198,19 @@ draw_spatial_grid_labels :: proc(spatial_Grid: ^Spatial_Grid, allocator := conte
             text_x := i32(x) + SPATIAL_GRID_TILE_SIZE / 2 - text_width / 2
             text_y := i32(y) + SPATIAL_GRID_TILE_SIZE / 2 - SPATIAL_GRID_FONT_SIZE / 2
             rl.DrawText(ctext, text_x, text_y, SPATIAL_GRID_FONT_SIZE, rl.LIGHTGRAY)
+        }
+    }
+}
+
+printPath :: proc(path: []^AStar_Node) {
+    for node, i in path {
+        if node.parent != nil {
+            fmt.printf("[%d] posX: %.1f, posY: %.1f, fCost: %.2f, gCost: %.2f, hCost: %.2f, parent: (%.1f, %.1f)\n",
+                i, node.tile.pos.x, node.tile.pos.y, node.fCost, node.gCost, node.hCost,
+                node.parent.tile.pos.x, node.parent.tile.pos.y)
+        } else {
+            fmt.printf("[%d] posX: %.1f, posY: %.1f, fCost: %.2f, gCost: %.2f, hCost: %.2f, parent: nil\n",
+                i, node.tile.pos.x, node.tile.pos.y, node.fCost, node.gCost, node.hCost);
         }
     }
 }
