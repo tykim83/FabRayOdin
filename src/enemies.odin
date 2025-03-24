@@ -2,6 +2,7 @@ package fabrayodin
 
 import "core:fmt"
 import "core:math"
+import "core:math/linalg"
 import rl "vendor:raylib"
 
 active_enemies: [dynamic]^Enemy
@@ -55,10 +56,7 @@ update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap
                 target_world.y - enemy.pos.y,
             }
             len := math.sqrt(direction.x * direction.x + direction.y * direction.y)
-            if len > 0 {
-                direction.x /= len
-                direction.y /= len
-            }
+            direction = linalg.normalize0(direction)
             
             // update enemy position using the normalized direction
             enemy^.pos.x += direction.x * ENEMY_SPEED * frame_time
