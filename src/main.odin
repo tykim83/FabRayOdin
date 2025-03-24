@@ -56,9 +56,13 @@ main :: proc() {
         // Draw Game
         draw_tilemap(tilemap)
         draw_enemies()
-
         // draw_pathfinding(car, astar_grid)
         draw_car(car)
+
+        // Draw Debug
+        rl.DrawFPS(200, 10)
+        text := fmt.caprintf("Total enemies: {}", len(active_enemies))
+        rl.DrawText(text, 300, 10, 25, rl.RED)
 
         rl.ClearBackground(rl.RAYWHITE)
 	}

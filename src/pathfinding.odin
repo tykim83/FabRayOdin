@@ -62,7 +62,7 @@ draw_pathfinding :: proc(car: Car, astar_grid: Astar_Grid) {
             rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.GREEN)
         }
 
-        rl.DrawRectangle(i32(enemy_tilemap_pos.x * TILEMAP_TILE_SIZE), i32(enemy_tilemap_pos.y * TILEMAP_TILE_SIZE), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.BLUE)
-        rl.DrawRectangle(i32(player_tilmap_pos.x * TILEMAP_TILE_SIZE), i32(player_tilmap_pos.y * TILEMAP_TILE_SIZE), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.BLUE)
+        // rl.DrawRectangle(i32(enemy_tilemap_pos.x * TILEMAP_TILE_SIZE), i32(enemy_tilemap_pos.y * TILEMAP_TILE_SIZE), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.BLUE)
+        // rl.DrawRectangle(i32(player_tilmap_pos.x * TILEMAP_TILE_SIZE), i32(player_tilmap_pos.y * TILEMAP_TILE_SIZE), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.BLUE)
     }
 }

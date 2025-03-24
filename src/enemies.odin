@@ -17,6 +17,7 @@ Enemy :: struct {
     grid_index: int,
     size: rl.Vector2,
     color: rl.Color,
+    prev_path: rl.Vector2
 }
 
 Spawn_Location :: enum {
@@ -46,8 +47,11 @@ update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap
         path, ok := find_astar_path(astar_grid, enemy_tilemap_pos, player_tilmap_pos)
         defer destroy_astar_path(&path)
 
-        if ok && len(path.nodes) > 1{
-            next := path.nodes[1].tile.pos
+        if ok && len(path.nodes) > 1 {
+            next := path.nodes[0].tile.pos
+            if next == enemy.prev_path {
+                next = path.nodes[1].tile.pos
+            }
 
             // update enemy position
             target_world := get_world_pos_from_grid_pos(int(next.x), int(next.y)) + {16, 16}
@@ -61,9 +65,11 @@ update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap
             // update enemy position using the normalized direction
             enemy^.pos.x += direction.x * ENEMY_SPEED * frame_time
             enemy^.pos.y += direction.y * ENEMY_SPEED * frame_time
-        }
 
-        
+            if len < 1.0 {
+                enemy.prev_path = next
+            }
+        }
 
         // Resolve Enemy collision
         for other_enemy_enemy in active_enemies {
@@ -88,7 +94,7 @@ draw_enemies :: proc() {
 
 spawn_enemies :: proc(frame_time: f32) {
     global_spawn_timer += frame_time
-    if enemy_count < 1 && global_spawn_timer > ENEMY_SPAWN_TIMER {
+    if enemy_count < 10 && global_spawn_timer > ENEMY_SPAWN_TIMER {
         enemy_count += 1
         global_spawn_timer = 0.0
         pos: rl.Vector2
