@@ -2,12 +2,11 @@ package fabrayodin
 
 import "core:fmt"
 import "core:math"
-import "core:math/rand"
 import rl "vendor:raylib"
 
 active_enemies: [dynamic]^Enemy
 
-ENEMY_SPEED :: 100.0
+ENEMY_SPEED :: 50.0
 ENEMY_SPAWN_TIMER :: 3.0
 enemy_count := 0
 global_spawn_timer: f32 = 2.9
@@ -41,23 +40,32 @@ update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap
 
     for &enemy in active_enemies {
         // get path
+        enemy_tilemap_pos := get_grid_pos_from_world_pos(enemy.pos)
+        player_tilmap_pos := get_grid_pos_from_world_pos(car.rb.position)
+        path, ok := find_astar_path(astar_grid, enemy_tilemap_pos, player_tilmap_pos)
+        defer destroy_astar_path(&path)
 
-        // path := find_astar_path(astar_grid)
+        if ok && len(path.nodes) > 1{
+            next := path.nodes[1].tile.pos
 
-        // update enemy position
-        move := rl.Vector2 {
-            car.rb.position.x - enemy.pos.x,
-            car.rb.position.y - enemy.pos.y,
+            // update enemy position
+            target_world := get_world_pos_from_grid_pos(int(next.x), int(next.y)) + {16, 16}
+            direction := rl.Vector2{
+                target_world.x - enemy.pos.x,
+                target_world.y - enemy.pos.y,
+            }
+            len := math.sqrt(direction.x * direction.x + direction.y * direction.y)
+            if len > 0 {
+                direction.x /= len
+                direction.y /= len
+            }
+            
+            // update enemy position using the normalized direction
+            enemy^.pos.x += direction.x * ENEMY_SPEED * frame_time
+            enemy^.pos.y += direction.y * ENEMY_SPEED * frame_time
         }
 
-        len: f32 = math.sqrt(move.x * move.x + move.y * move.y)
-        if len > 0 {
-            move.x /= len
-            move.y /= len
-        }
-
-        enemy^.pos.x += move.x * ENEMY_SPEED * frame_time
-        enemy^.pos.y += move.y * ENEMY_SPEED * frame_time
+        
 
         // Resolve Enemy collision
         for other_enemy_enemy in active_enemies {
@@ -74,7 +82,7 @@ update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap
 draw_enemies :: proc() {
     for enemy in active_enemies {
         if enemy != nil {
-            rect := get_rect_from_pos_and_size(enemy^)
+            rect := get_rect_from_world_pos_and_size(enemy^)
             rl.DrawRectangleRec(rect, enemy^.color)
         }       
     }
@@ -87,20 +95,8 @@ spawn_enemies :: proc(frame_time: f32) {
         global_spawn_timer = 0.0
         pos: rl.Vector2
 
-        sp := rand.choice_enum(Spawn_Location)
-        switch sp {
-            case .Top, .Bottom:
-                x := rand.float32() * 800
-                y := (f32)(rand.int31_max(2) * 640)
-                pos = { x, y }
-            case .Left, .Right:
-                x := (f32)(rand.int31_max(2) * 1280)
-                y := rand.float32() * 450
-                pos = { x, y }
-        }
-
         enemy := Enemy {
-            pos = pos,
+            pos = {32 + 16 , 32 + 16},
             size = {32, 32},
             color = rl.BLUE,
         }
@@ -114,8 +110,8 @@ spawn_enemies :: proc(frame_time: f32) {
 
 @(private = "file")
 resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
-    r1 := get_rect_from_pos_and_size(e1^)
-    r2 := get_rect_from_pos_and_size(e2^)
+    r1 := get_rect_from_world_pos_and_size(e1^)
+    r2 := get_rect_from_world_pos_and_size(e2^)
     
     if !rl.CheckCollisionRecs(r1, r2) { return }
     

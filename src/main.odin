@@ -56,8 +56,9 @@ main :: proc() {
         // Draw Game
         draw_tilemap(tilemap)
         draw_enemies()
+
+        // draw_pathfinding(car, astar_grid)
         draw_car(car)
-        draw_pathfinding(car, astar_grid)
 
         rl.ClearBackground(rl.RAYWHITE)
 	}
