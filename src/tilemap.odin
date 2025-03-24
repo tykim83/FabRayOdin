@@ -83,7 +83,7 @@ check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
 
 @(private = "file")
 resolve_collision :: proc(entity: ^$T, tile: rl.Rectangle) {
-    entity_rect := get_rect_from_world_pos_and_size(entity)
+    entity_rect := get_rect_from_centre_world_pos_and_size(entity)
     if !rl.CheckCollisionRecs(entity_rect, tile) {
         return
     }
