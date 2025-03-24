@@ -7,7 +7,7 @@ import rl "vendor:raylib"
 
 active_enemies: [dynamic]^Enemy
 
-ENEMY_SPEED :: 50.0
+ENEMY_SPEED :: 100.0
 ENEMY_SPAWN_TIMER :: 3.0
 enemy_count := 0
 global_spawn_timer: f32 = 2.9
@@ -86,7 +86,7 @@ update_enemies :: proc(mouse_pos: rl.Vector2, car: Car, frame_time: f32, tilemap
 draw_enemies :: proc() {
     for enemy in active_enemies {
         if enemy != nil {
-            rect := get_rect_from_world_pos_and_size(enemy^)
+            rect := get_rect_from_centre_world_pos_and_size(enemy^)
             rl.DrawRectangleRec(rect, enemy^.color)
         }       
     }
@@ -114,8 +114,8 @@ spawn_enemies :: proc(frame_time: f32) {
 
 @(private = "file")
 resolve_enemy_collision :: proc(e1: ^Enemy, e2: ^Enemy) {
-    r1 := get_rect_from_world_pos_and_size(e1^)
-    r2 := get_rect_from_world_pos_and_size(e2^)
+    r1 := get_rect_from_centre_world_pos_and_size(e1^)
+    r2 := get_rect_from_centre_world_pos_and_size(e2^)
     
     if !rl.CheckCollisionRecs(r1, r2) { return }
     

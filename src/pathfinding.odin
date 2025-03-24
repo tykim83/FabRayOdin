@@ -28,27 +28,6 @@ destroy_pathfinding :: proc(astar_grid: ^Astar_Grid, loc := #caller_location) {
 }
 
 draw_pathfinding :: proc(car: Car, astar_grid: Astar_Grid) {
-
-    // for tile, index in astar_grid.tiles {
-    //     row := tile.pos.y
-    //     col := tile.pos.x
-
-    //     tile_x := col * TILEMAP_TILE_SIZE
-    //     tile_y := row * TILEMAP_TILE_SIZE
-
-    //     // Draw path grid
-    //     rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.RED)
-
-    //     // Draw path text
-    //     text := fmt.tprintf("%v", index)
-    //     ctext := strings.clone_to_cstring(text)
-    //     text_width := rl.MeasureText(ctext, 18)
-
-    //     text_x := i32(tile_x) + 32 / 2 - text_width / 2
-    //     text_y := i32(tile_y) + 32 / 2 - 18 / 2
-    //     rl.DrawText(ctext, text_x, text_y, 18, rl.LIGHTGRAY)
-    // }
-
     for enemy in active_enemies {
         enemy_tilemap_pos := get_grid_pos_from_world_pos(enemy.pos)
         player_tilmap_pos := get_grid_pos_from_world_pos(car.rb.position)
@@ -61,8 +40,5 @@ draw_pathfinding :: proc(car: Car, astar_grid: Astar_Grid) {
 
             rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.GREEN)
         }
-
-        // rl.DrawRectangle(i32(enemy_tilemap_pos.x * TILEMAP_TILE_SIZE), i32(enemy_tilemap_pos.y * TILEMAP_TILE_SIZE), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.BLUE)
-        // rl.DrawRectangle(i32(player_tilmap_pos.x * TILEMAP_TILE_SIZE), i32(player_tilmap_pos.y * TILEMAP_TILE_SIZE), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.BLUE)
     }
 }
