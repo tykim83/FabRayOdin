@@ -35,27 +35,10 @@ main :: proc() {
 	rl.SetTargetFPS(60)      
 
     // Init Game
-    spatial_grid := init_spatial_grid(SCREEN_WIDTH, SCREEN_HEIGHT, debug = true); defer destroy_spatial_grid(&spatial_grid)
     init_enemies(); defer destroy_enemies()
     car := init_car()
     tilemap := init_tilemap()
-
-    // Pathfinder test
-    path_min : Vector2 = {0, 0}
-	path_max : Vector2 = {TILEMAP_WIDTH - 1, TILEMAP_HEIGHT - 1}
-    astar := init_grid(path_min, path_max)
-    defer destroy_grid(&astar)
-
-    for layer in tilemap.layers {
-        if !layer.is_visible { continue }
-
-        for tile, index in layer.data {
-            if (tile == -1) { continue }
-            row := index / TILEMAP_WIDTH
-            col := index % TILEMAP_WIDTH
-            set_blocked_tile(&astar, {i32(col),i32(row)})
-        }
-    }
+    astar_grid := init_pathfinding(tilemap); defer destroy_pathfinding(&astar_grid)
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -63,19 +46,23 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         // Update Game
-        spawn_enemies(frame_time, &spatial_grid)
+        spawn_enemies(frame_time)
         update_car(&car, frame_time, tilemap)
-        update_enemies(&spatial_grid, mouse_pos, car, frame_time, tilemap)   
-        update_astar_path(car, &spatial_grid, astar)
+        update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
 
         // Draw Game
-        draw_spatial_grid(&spatial_grid)
-        draw_enemies(&spatial_grid)
-        draw_car(car)
         draw_tilemap(tilemap)
+        draw_enemies()
+        // draw_pathfinding(car, astar_grid)
+        draw_car(car)
+
+        // Draw Debug
+        rl.DrawFPS(200, 10)
+        text := fmt.caprintf("Total enemies: {}", len(active_enemies))
+        rl.DrawText(text, 300, 10, 25, rl.RED)
 
         rl.ClearBackground(rl.RAYWHITE)
 	}
