@@ -58,6 +58,27 @@ draw_tilemap :: proc(tilemap: Tilemap) {
     }
 }
 
+// I might remove this
+check_wall_in_neighbors :: proc(pos : Vector2, tilemap: Tilemap) -> bool {
+    for row in pos.y - 1..<pos.y + 2 {
+        for col in pos.x - 1..<pos.x + 2 {
+            if row == -1 || col == -1 {
+                continue
+            }
+
+            for layer in tilemap.layers {
+                if !layer.is_collision { continue }
+                
+                tile := layer.data[row * TILEMAP_WIDTH + col] 
+                if (tile == 0) { 
+                    return true;
+                }         
+            }
+        }
+    }
+    return false;
+}
+
 check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
     for layer in tilemap.layers {
         if !layer.is_collision { continue }
@@ -76,15 +97,21 @@ check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
                 height = TILEMAP_TILE_SIZE 
             }
 
-            resolve_collision(entity, tile_rect)
+            resolve_collision(entity, &tile_rect)
         }
     }
 }
 
 @(private = "file")
-resolve_collision :: proc(entity: ^$T, tile: rl.Rectangle) {
+resolve_collision :: proc(entity: ^$T, tile: ^rl.Rectangle) {
     entity_rect := get_rect_from_centre_world_pos_and_size(entity)
-    if !rl.CheckCollisionRecs(entity_rect, tile) {
+    shrink_amount: f32 = 2.0 // <-- Your grace amount
+
+    tile.x += shrink_amount
+    tile.y += shrink_amount
+    tile.width -= shrink_amount * 2
+    tile.height -= shrink_amount * 2
+    if !rl.CheckCollisionRecs(entity_rect, tile^) {
         return
     }
 

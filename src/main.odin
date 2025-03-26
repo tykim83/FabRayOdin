@@ -5,8 +5,8 @@ import "core:mem"
 import vmem "core:mem/virtual"
 import rl "vendor:raylib"
 
-SCREEN_WIDTH :: 1280
-SCREEN_HEIGHT :: 704
+SCREEN_WIDTH :: 1600
+SCREEN_HEIGHT :: 960
 
 main :: proc() {
     // Tracking memory leaks
@@ -38,8 +38,8 @@ main :: proc() {
     init_enemies(); defer destroy_enemies()
     car := init_car()
     tilemap := init_tilemap()
-    astar_grid := init_pathfinding(tilemap); defer destroy_pathfinding(&astar_grid)
     gun := init_gun(car)
+    astar_grid := init_pathfinding(tilemap); defer destroy_pathfinding(&astar_grid)
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -49,8 +49,8 @@ main :: proc() {
         // Update Game
         spawn_enemies(frame_time)
         update_car(&car, frame_time, tilemap)
-        update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
         update_gun(&gun, car, frame_time)
+        update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
