@@ -8,15 +8,15 @@ import path "core:path/slashpath"
 import rl "vendor:raylib"
 
 START_CAR_POSITION : rl.Vector2 : { 400, 280 }
-CAR_HALF_SIZE : rl.Vector2 : {32, 16}
+CAR_HALF_SIZE : rl.Vector2 : {48, 32}
 car_texture : rl.Texture2D
 
 // Car Movement
-CAR_MASS :: 5.0
-CAR_ACCELERATION :: 500.0      // How fast the car accelerates
+CAR_MASS :: 2.5
+CAR_ACCELERATION :: 500    // How fast the car accelerates
 CAR_BRAKE_FORCE :: 250.0       // How strong the car brakes
-CAR_STEERING_FORCE :: 100.0    // How strong steering turns the car
-CAR_STEERING_SPEED_FACTOR :: 10.0 // Adjusts steering at higher speeds
+CAR_STEERING_FORCE :: 130    // How strong steering turns the car
+CAR_STEERING_SPEED_FACTOR :: 120 // Adjusts steering at higher speeds
 
 // 🔄 Collision & Bounce
 RESTITUTION :: 0.4         // How much the car bounces off walls

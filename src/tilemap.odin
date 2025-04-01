@@ -7,7 +7,7 @@ import rl "vendor:raylib"
 
 TILEMAP_WIDTH :: SCREEN_WIDTH / TILEMAP_TILE_SIZE
 TILEMAP_HEIGHT :: SCREEN_HEIGHT / TILEMAP_TILE_SIZE
-TILEMAP_TILE_SIZE :: 32
+TILEMAP_TILE_SIZE :: 64
 
 TILEMAP_JSON_DATA :: #load("/Assets/Tilemap/tilemap_test.json")
 
@@ -45,10 +45,12 @@ draw_tilemap :: proc(tilemap: Tilemap) {
             tile_y := row * TILEMAP_TILE_SIZE
 
             // Draw floor
-            if (tile == -1) { 
-                control := row % 2 == 1 ? 1 : 0
-                color := index % 2 == control ? rl.WHITE : rl.LIGHTGRAY
-                rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, color)
+            if (tile == -1) {
+                if ((row + col) % 2 == 0) {
+                    rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.WHITE)
+                } else {
+                    rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.LIGHTGRAY)
+                }
                 continue
             }
 
