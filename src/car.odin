@@ -38,7 +38,7 @@ init_car :: proc() -> Car {
     return car
 }
 
-update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap) {
+update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap, flow_field: ^Flow_Field) {
     onRoad : bool = true
     traction : f32 = 1
     throttle: f32 = 0
@@ -85,6 +85,9 @@ update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap) {
     for wall in tilemap.collision_rect {
         resolve_collision_car_wall_sat(car, wall)  
     }
+
+    // Update FlowField Target 
+    update_flow_field(flow_field, car.rb.position)
 }
 
 draw_car :: proc(car: Car) {

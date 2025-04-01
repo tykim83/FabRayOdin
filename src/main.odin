@@ -7,6 +7,9 @@ import rl "vendor:raylib"
 
 SCREEN_WIDTH :: 1600
 SCREEN_HEIGHT :: 960
+GRID_COLUMNS :: SCREEN_WIDTH / GRID_TILE_SIZE
+GRID_ROWS :: SCREEN_HEIGHT / GRID_TILE_SIZE
+GRID_TILE_SIZE :: 64
 
 main :: proc() {
     // Tracking memory leaks
@@ -35,11 +38,11 @@ main :: proc() {
 	rl.SetTargetFPS(60)      
 
     // Init Game
-    init_enemies(); defer destroy_enemies()
+    // init_enemies(); defer destroy_enemies()
     car := init_car()
+    // gun := init_gun(car)
     tilemap := init_tilemap()
-    gun := init_gun(car)
-    astar_grid := init_pathfinding(tilemap); defer destroy_pathfinding(&astar_grid)
+    flow_field := init_pathfinding(tilemap); //defer destroy_pathfinding(&astar_grid)
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -47,26 +50,27 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         // Update Game
-        spawn_enemies(frame_time)
-        update_car(&car, frame_time, tilemap)
-        update_gun(&gun, car, frame_time)
-        update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
+        // spawn_enemies(frame_time)
+        update_car(&car, frame_time, tilemap, &flow_field)
+        // update_gun(&gun, car, frame_time)
+        // update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
+        
+        rl.ClearBackground(rl.RAYWHITE)
 
         // Draw Game
         draw_tilemap(tilemap)
-        draw_enemies()
-        // draw_pathfinding(car, astar_grid)
+        // draw_enemies()
+        draw_pathfinding(flow_field)
         draw_car(car)
-        draw_gun(gun)
+        // draw_gun(gun)
 
         // Draw Debug
         rl.DrawFPS(200, 10)
-        text := fmt.caprintf("Total enemies: {}", len(active_enemies))
-        rl.DrawText(text, 300, 10, 25, rl.RED)
+        // text := fmt.caprintf("Total enemies: {}", len(active_enemies))
+        // rl.DrawText(text, 300, 10, 25, rl.RED)
 
-        rl.ClearBackground(rl.RAYWHITE)
 	}
 }

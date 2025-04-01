@@ -5,9 +5,7 @@ import json "core:encoding/json"
 import "core:math"
 import rl "vendor:raylib"
 
-TILEMAP_WIDTH :: SCREEN_WIDTH / TILEMAP_TILE_SIZE
-TILEMAP_HEIGHT :: SCREEN_HEIGHT / TILEMAP_TILE_SIZE
-TILEMAP_TILE_SIZE :: 64
+
 
 TILEMAP_JSON_DATA :: #load("/Assets/Tilemap/tilemap_test.json")
 
@@ -38,30 +36,30 @@ draw_tilemap :: proc(tilemap: Tilemap) {
         if !layer.is_visible { continue }
 
         for tile, index in layer.data {
-            row := index / TILEMAP_WIDTH
-            col := index % TILEMAP_WIDTH
+            row := index / GRID_COLUMNS
+            col := index % GRID_COLUMNS
 
-            tile_x := col * TILEMAP_TILE_SIZE
-            tile_y := row * TILEMAP_TILE_SIZE
+            tile_x := col * GRID_TILE_SIZE
+            tile_y := row * GRID_TILE_SIZE
 
             // Draw floor
             if (tile == -1) {
                 if ((row + col) % 2 == 0) {
-                    rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.WHITE)
+                    rl.DrawRectangle(i32(tile_x), i32(tile_y), GRID_TILE_SIZE, GRID_TILE_SIZE, rl.WHITE)
                 } else {
-                    rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.LIGHTGRAY)
+                    rl.DrawRectangle(i32(tile_x), i32(tile_y), GRID_TILE_SIZE, GRID_TILE_SIZE, rl.LIGHTGRAY)
                 }
                 continue
             }
 
             // Draw Walls
-            rl.DrawRectangle(i32(tile_x), i32(tile_y), TILEMAP_TILE_SIZE, TILEMAP_TILE_SIZE, rl.RED)
+            rl.DrawRectangle(i32(tile_x), i32(tile_y), GRID_TILE_SIZE, GRID_TILE_SIZE, rl.RED)
         }
     }
 }
 
 // I might remove this
-check_wall_in_neighbors :: proc(pos : Vector2, tilemap: Tilemap) -> bool {
+check_wall_in_neighbors :: proc(pos : Vector2i, tilemap: Tilemap) -> bool {
     for row in pos.y - 1..<pos.y + 2 {
         for col in pos.x - 1..<pos.x + 2 {
             if row == -1 || col == -1 {
@@ -71,7 +69,7 @@ check_wall_in_neighbors :: proc(pos : Vector2, tilemap: Tilemap) -> bool {
             for layer in tilemap.layers {
                 if !layer.is_collision { continue }
                 
-                tile := layer.data[row * TILEMAP_WIDTH + col] 
+                tile := layer.data[row * GRID_COLUMNS + col] 
                 if (tile == 0) { 
                     return true;
                 }         
@@ -88,15 +86,15 @@ check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {
         for tile, index in layer.data {
             if (tile == -1) { continue }
 
-            row := index / TILEMAP_WIDTH
-            col := index % TILEMAP_WIDTH
-            tile_x := col * TILEMAP_TILE_SIZE
-            tile_y := row * TILEMAP_TILE_SIZE
+            row := index / GRID_COLUMNS
+            col := index % GRID_COLUMNS
+            tile_x := col * GRID_TILE_SIZE
+            tile_y := row * GRID_TILE_SIZE
             tile_rect := rl.Rectangle { 
                 x = f32(tile_x), 
                 y = f32(tile_y), 
-                width = TILEMAP_TILE_SIZE, 
-                height = TILEMAP_TILE_SIZE 
+                width = GRID_TILE_SIZE, 
+                height = GRID_TILE_SIZE 
             }
 
             resolve_collision(entity, &tile_rect)
@@ -153,15 +151,15 @@ create_tilemap_collision_rects :: proc(tilemap: Tilemap, allocator := context.al
         for tile, index in layer.data {
             if (tile == -1) { continue }
 
-            row := index / TILEMAP_WIDTH
-            col := index % TILEMAP_WIDTH
-            tile_x := col * TILEMAP_TILE_SIZE
-            tile_y := row * TILEMAP_TILE_SIZE
+            row := index / GRID_COLUMNS
+            col := index % GRID_COLUMNS
+            tile_x := col * GRID_TILE_SIZE
+            tile_y := row * GRID_TILE_SIZE
             tile_rect := rl.Rectangle { 
                 x = f32(tile_x), 
                 y = f32(tile_y), 
-                width = TILEMAP_TILE_SIZE, 
-                height = TILEMAP_TILE_SIZE 
+                width = GRID_TILE_SIZE, 
+                height = GRID_TILE_SIZE 
             }
 
             append(&rects, tile_rect, loc)
