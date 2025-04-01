@@ -57,9 +57,8 @@ main :: proc() {
 
         rl.BeginDrawing()
         defer rl.EndDrawing()
-        
         rl.ClearBackground(rl.RAYWHITE)
-
+        
         // Draw Game
         // draw_tilemap(tilemap)
         // draw_enemies()
@@ -70,7 +69,6 @@ main :: proc() {
         // Draw Debug
         rl.DrawFPS(200, 10)
         // text := fmt.caprintf("Total enemies: {}", len(active_enemies))
-        // rl.DrawText(text, 300, 10, 25, rl.RED)
-
+        // rl.DrawText(text, 300, 10, 25, rl.RED)      
 	}
 }
