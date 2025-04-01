@@ -1,8 +1,6 @@
 package fabrayodin
 
-import rl "vendor:raylib"
-
-get_rect_from_centre_world_pos_and_size :: proc(entity: $T) -> rl.Rectangle {
+get_rect_from_centre_world_pos_and_size :: proc(entity: $T) -> Vector2f {
     return rl.Rectangle{
         x = entity.pos.x - entity.size.x / 2,
         y = entity.pos.y - entity.size.y / 2,
@@ -17,12 +15,16 @@ get_grid_pos_from_index :: proc(index: int) -> [2]int {
     return { col, row }
 }
 
-get_grid_pos_from_world_pos :: proc(pos: rl.Vector2) -> Vector2i32 {
+get_index_from_grid_pos :: proc(pos: Vector2i) -> i32 {
+    return i32(pos.y * GRID_COLUMNS + pos.x)
+}
+
+get_grid_pos_from_world_pos :: proc(pos: Vector2f) -> Vector2i32 {
     grid_x := i32(pos.x) / GRID_TILE_SIZE
     grid_y := i32(pos.y) / GRID_TILE_SIZE
     return { grid_x, grid_y }
 }
 
-get_world_pos_from_grid_pos :: proc(col, row: int) -> rl.Vector2 {
+get_world_pos_from_grid_pos :: proc(col, row: int) -> Vector2f {
     return { f32(col * GRID_TILE_SIZE), f32(row * GRID_TILE_SIZE) }
 }

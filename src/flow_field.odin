@@ -2,9 +2,10 @@ package fabrayodin
 
 import "core:fmt"
 import "core:math"
+import "core:mem"
+import vmem "core:mem/virtual"
 import sl "core:slice"
 import "core:math/linalg"
-import rl "vendor:raylib"
 import queue "core:container/queue"
 
 Vector2i32 :: [2]i32
@@ -32,6 +33,7 @@ ALL_NEIGHBORS :: [8]Vector2i {
 Flow_Field :: struct {
     target : Vector2f,
     nodes  : []Node,
+    allocator : mem.Allocator
 }
 
 Node :: struct {
@@ -41,11 +43,11 @@ Node :: struct {
     is_walkable : bool
 }
 
-init_flow_field :: proc(region_min, region_max: Vector2i) -> Flow_Field {
+init_flow_field :: proc(region_min, region_max: Vector2i, allocator := context.allocator, loc := #caller_location) -> Flow_Field {
     area := region_max - region_min
     cols := area.x
     rows := area.y
-    flow_grid := make([]Node, cols * rows)
+    flow_grid := make([]Node, cols * rows, allocator, loc)
 
     for &node, i in flow_grid {
         node.pos = { i % cols, i / cols }
@@ -59,25 +61,21 @@ init_flow_field :: proc(region_min, region_max: Vector2i) -> Flow_Field {
     }
 }
 
+destroy_flow_field :: proc(flow_field: ^Flow_Field, loc := #caller_location) {
+    if flow_field == nil { return }
+    delete(flow_field.nodes, flow_field.allocator, loc)
+}
+
 set_blocked_tile :: proc(flow_field: ^Flow_Field, pos: Vector2i) {
-    flow_field.nodes[to_index(pos)].is_walkable = false;
+    flow_field.nodes[get_index_from_grid_pos(pos)].is_walkable = false;
 }
 
-@(private = "file")
-to_index :: proc(pos: Vector2i) -> i32 {
-    return i32(pos.y * GRID_COLUMNS + pos.x)
-}
-
-update_flow_field :: proc(flow_field: ^Flow_Field, target_pos: Vector2f) {
+update_flow_field :: proc(flow_field: ^Flow_Field, target_pos: Vector2f, loc := #caller_location) {
     target_grid_pos : Vector2i = { int(target_pos.x) / GRID_TILE_SIZE, int(target_pos.y) / GRID_TILE_SIZE }
     new_target_index := target_grid_pos.y * GRID_COLUMNS + target_grid_pos.x
     if new_target_index >= len(flow_field.nodes) {
         return
     }
-
-    // if rl.IsMouseButtonReleased(.RIGHT) {
-    //     flow_field.nodes[new_target_index].is_walkable = false
-    // }
 
     prev_target_grid_pos : Vector2i = { int(flow_field.target.x) / GRID_TILE_SIZE, int(flow_field.target.y) / GRID_TILE_SIZE }
     if target_grid_pos == prev_target_grid_pos || !flow_field.nodes[new_target_index].is_walkable {
@@ -85,11 +83,37 @@ update_flow_field :: proc(flow_field: ^Flow_Field, target_pos: Vector2f) {
     }
     flow_field.target = { f32(target_grid_pos.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2), f32(target_grid_pos.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2) }
 
-    calculate_cost(flow_field^, new_target_index)
+    calculate_cost(flow_field^, new_target_index, loc)
     calculate_flow(flow_field^)
 }
 
-calculate_cost :: proc(flow_field: Flow_Field, new_target_index: int) {
+
+get_flow_direction :: proc(pos: Vector2f, flow_field: Flow_Field) -> (Vector2f, bool) {
+    enemy_grid_pos : Vector2i = { int(pos.x) / GRID_TILE_SIZE, int(pos.y) / GRID_TILE_SIZE }
+
+    if enemy_grid_pos.x < 0 || enemy_grid_pos.x >= GRID_COLUMNS ||
+       enemy_grid_pos.y < 0 || enemy_grid_pos.y >= GRID_ROWS {
+        return {-1, -1}, false
+    }
+
+    index := enemy_grid_pos.y * GRID_COLUMNS + enemy_grid_pos.x
+    node := flow_field.nodes[index]
+
+    // return direction to center of target
+    target_grid_pos : Vector2i = { int(flow_field.target.x) / GRID_TILE_SIZE, int(flow_field.target.y) / GRID_TILE_SIZE }
+    if enemy_grid_pos == target_grid_pos {
+        return linalg.normalize0(flow_field.target - pos), true
+    }
+
+    // return flow field direction
+    return linalg.normalize0(flow_field.nodes[index].direction), true
+}
+
+@(private = "file")
+calculate_cost :: proc(flow_field: Flow_Field, new_target_index: int, loc := #caller_location) {
+    grid_arena: vmem.Arena
+    grid_arena_allocator := vmem.arena_allocator(&grid_arena)
+
     flow_grid := flow_field.nodes
 
     for &node, i in flow_grid {
@@ -125,8 +149,11 @@ calculate_cost :: proc(flow_field: Flow_Field, new_target_index: int) {
             }
         }
     }
+
+    vmem.arena_destroy(&grid_arena, loc)
 }
 
+@(private = "file")
 calculate_flow :: proc(flow_field: Flow_Field) {
     flow_grid := flow_field.nodes
 
@@ -172,25 +199,4 @@ calculate_flow :: proc(flow_field: Flow_Field) {
             }
         }
     }
-}
-
-get_flow_direction :: proc(pos: Vector2f, flow_field: Flow_Field) -> (Vector2f, bool) {
-    enemy_grid_pos : Vector2i = { int(pos.x) / GRID_TILE_SIZE, int(pos.y) / GRID_TILE_SIZE }
-
-    if enemy_grid_pos.x < 0 || enemy_grid_pos.x >= GRID_COLUMNS ||
-       enemy_grid_pos.y < 0 || enemy_grid_pos.y >= GRID_ROWS {
-        return {-1, -1}, false
-    }
-
-    index := enemy_grid_pos.y * GRID_COLUMNS + enemy_grid_pos.x
-    node := flow_field.nodes[index]
-
-    // return direction to center of target
-    target_grid_pos : Vector2i = { int(flow_field.target.x) / GRID_TILE_SIZE, int(flow_field.target.y) / GRID_TILE_SIZE }
-    if enemy_grid_pos == target_grid_pos {
-        return linalg.normalize0(flow_field.target - pos), true
-    }
-
-    // return flow field direction
-    return linalg.normalize0(flow_field.nodes[index].direction), true
 }

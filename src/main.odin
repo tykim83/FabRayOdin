@@ -25,11 +25,11 @@ main :: proc() {
                 }
             }
             if len(track.bad_free_array) > 0 {
-				for entry in track.bad_free_array {
-					fmt.eprintf("%v bad free at %v\n", entry.location, entry.memory)
-				}
-			}
-			mem.tracking_allocator_destroy(&track)
+                for entry in track.bad_free_array {
+                    fmt.eprintf("%v bad free at %v\n", entry.location, entry.memory)
+                }
+            }
+            mem.tracking_allocator_destroy(&track)
         }
     }
 
@@ -42,7 +42,7 @@ main :: proc() {
     car := init_car()
     // gun := init_gun(car)
     tilemap := init_tilemap()
-    flow_field := init_pathfinding(tilemap); //defer destroy_pathfinding(&astar_grid)
+    flow_field := init_pathfinding(tilemap); defer destroy_pathfinding(&flow_field)
 
 	for !rl.WindowShouldClose() { 
         free_all(context.temp_allocator)
@@ -61,7 +61,7 @@ main :: proc() {
         rl.ClearBackground(rl.RAYWHITE)
 
         // Draw Game
-        draw_tilemap(tilemap)
+        // draw_tilemap(tilemap)
         // draw_enemies()
         draw_pathfinding(flow_field)
         draw_car(car)
