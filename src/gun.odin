@@ -11,6 +11,7 @@ bullet_count := 0
 global_bullet_spawn_timer: f32 = 0.0
 
 Gun :: struct {
+    offset: Vector2f,
 	pos: Vector2f,
     half_size: Vector2f,
     angle: f32,
@@ -18,9 +19,10 @@ Gun :: struct {
     bullet_enemy: int
 }
 
-init_gun :: proc(car: Car) -> Gun {  
+init_gun :: proc(car: Car, offset: Vector2f) -> Gun {  
     return Gun {
-        pos = car.rb.position,
+        offset = offset,
+        pos = car.rb.position + offset,
         half_size = { 16, 8 },
         angle = 0,
     }
@@ -28,7 +30,15 @@ init_gun :: proc(car: Car) -> Gun {
 
 update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
     // Update Pos
-    gun.pos = car.rb.position
+	sin_theta := math.sin(car.rb.angle)
+	cos_theta := math.cos(car.rb.angle)
+
+	rotated_offset := Vector2f{
+		gun.offset.x * cos_theta - gun.offset.y * sin_theta,
+		gun.offset.x * sin_theta + gun.offset.y * cos_theta,
+	}
+
+	gun.pos = car.rb.position + rotated_offset
 
     // Find closest enemy
     closest_distance := math.max(int)
