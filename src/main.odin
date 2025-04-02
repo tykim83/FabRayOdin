@@ -41,7 +41,6 @@ main :: proc() {
     enemies := init_enemies(); // defer destroy_enemies()
     car := init_car()
     // gun := init_gun(car)
-
     tilemap := init_tilemap(); defer destroy_tilemap(&tilemap)
     flow_field := init_pathfinding(tilemap); defer destroy_pathfinding(&flow_field)
 
@@ -54,14 +53,12 @@ main :: proc() {
         spawn_enemies(&enemies, frame_time)
         update_car(&car, frame_time, tilemap, &flow_field)
         // update_gun(&gun, car, frame_time)
-        update_enemies(&enemies, flow_field, mouse_pos, frame_time)   
+        update_enemies(enemies[:], flow_field, frame_time)   
 
-        rl.BeginDrawing()
-        defer rl.EndDrawing()
+        rl.BeginDrawing(); defer rl.EndDrawing()
         rl.ClearBackground(rl.RAYWHITE)
         
         // Draw Game
-        // draw_tilemap(tilemap)
         draw_enemies(enemies[:])
         draw_pathfinding(flow_field)
         draw_car(car)

@@ -1,14 +1,12 @@
 package fabrayodin
 
-import "core:os"
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
-import path "core:path/slashpath"
 import rl "vendor:raylib"
 
-START_CAR_POSITION : rl.Vector2 : { 400, 280 }
-CAR_HALF_SIZE : rl.Vector2 : {48, 32}
+START_CAR_POSITION : Vector2f : { 400, 280 }
+CAR_HALF_SIZE : Vector2f : {48, 32}
 car_texture : rl.Texture2D
 
 // Car Movement
@@ -64,7 +62,7 @@ update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap, flow_field: ^Flow_Field
     }
 
     // Add force
-	forward : rl.Vector2 = { math.cos(car.rb.angle), math.sin(car.rb.angle) };
+	forward : Vector2f = { math.cos(car.rb.angle), math.sin(car.rb.angle) };
 	drive_force := forward * throttle * traction; // Traction can make car slower
 	add_rigid_body_force(&car.rb, drive_force)
 
@@ -105,7 +103,7 @@ draw_car :: proc(car: Car) {
 resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
     carCorners := get_rigid_body_collision_box(car.rb)
 
-    wallCorners: [4]rl.Vector2 = {
+    wallCorners: [4]Vector2f = {
         
         { wall.x, wall.y },
         { wall.x + wall.width, wall.y },
@@ -113,14 +111,14 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
         { wall.x, wall.y + wall.height }
     }
 
-    axes: []rl.Vector2 = { 
+    axes: []Vector2f = { 
         { -(carCorners[1].y - carCorners[0].y), carCorners[1].x - carCorners[0].x }, 
         { -(carCorners[2].y - carCorners[1].y), carCorners[2].x - carCorners[1].x }, 
         { 1, 0 }, { 0, 1 }
     }
 
     mtv_overlap: f32 = 1e9
-    mtv_axis: rl.Vector2 = {0, 0}
+    mtv_axis: Vector2f = {0, 0}
     collision: bool = true
 
     for axis in axes {
@@ -177,7 +175,7 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
     impulse_magnitude := (1 + RESTITUTION) * math.abs(proj) * car.rb.mass * impact_factor
 
     // Reduce rotation when front hits head-on
-    front_axis := rl.Vector2{ math.cos(car.rb.angle), math.sin(car.rb.angle) }
+    front_axis := Vector2f { math.cos(car.rb.angle), math.sin(car.rb.angle) }
     front_impact_factor := math.abs(linalg.dot(front_axis, -mtv_axis))  // 1 = full front hit, 0 = side hit
 
     // 🔧 Reduce torque effect when hitting head-on
@@ -189,7 +187,7 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
 }
 
 @(private = "file")
-project_polygon :: proc(axis: rl.Vector2, points: [4]rl.Vector2) -> (f32, f32) {
+project_polygon :: proc(axis: Vector2f, points: [4]Vector2f) -> (f32, f32) {
     min_val := linalg.dot(points[0], axis)
     max_val := min_val
     for point in points {

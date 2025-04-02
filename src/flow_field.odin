@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:math"
 import "core:mem"
 import vmem "core:mem/virtual"
-import sl "core:slice"
 import "core:math/linalg"
 import queue "core:container/queue"
 
