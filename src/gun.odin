@@ -54,7 +54,7 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
             target_enemy.pos.y - gun.pos.y,
         }
         target_angle := math.atan2(direction.y, direction.x)
-        gun.angle = math.angle_lerp(gun.angle, target_angle, 0.1) 
+        gun.angle = math.angle_lerp(gun.angle, target_angle, 0.05) 
     }
 
     // Spawn bullet

@@ -13,7 +13,7 @@ global_spawn_timer: f32 = 0.2
 
 Enemy :: struct {
     pos: Vector2f,
-    posDraw : Vector2f,
+    pos_draw : Vector2f,
 }
 
 init_enemies :: proc(allocator := context.allocator, loc := #caller_location) -> [dynamic]Enemy {
@@ -41,7 +41,7 @@ spawn_enemies :: proc(enemies: ^[dynamic]Enemy, frame_time: f32, loc := #caller_
 
 draw_enemies :: proc(enemies: []Enemy) {
     for enemy in enemies {
-        rl.DrawCircle(i32(enemy.posDraw.x), i32(enemy.posDraw.y), ENEMY_SIZE, rl.RED)
+        rl.DrawCircle(i32(enemy.pos_draw.x), i32(enemy.pos_draw.y), ENEMY_SIZE, rl.RED)
     }
 }
 
@@ -52,12 +52,12 @@ update_enemies :: proc(enemies: []Enemy, flow_field: Flow_Field, dt: f32) {
             flow_field.target.x - enemy.pos.x,
             flow_field.target.y - enemy.pos.y,
         }
-        distanceToTarget := math.sqrt(delta.x * delta.x + delta.y * delta.y)
+        distance_to_target := math.sqrt(delta.x * delta.x + delta.y * delta.y)
         
         // Determine how far to move this frame.
-        distanceMove := ENEMY_SPEED * dt
-        if distanceMove > distanceToTarget {
-            distanceMove = distanceToTarget
+        distance_move := ENEMY_SPEED * dt
+        if distance_move > distance_to_target {
+            distance_move = distance_to_target
         }
 
         if flow_dir, ok := get_flow_direction(enemy.pos, flow_field); ok {
@@ -77,15 +77,15 @@ update_enemies :: proc(enemies: []Enemy, flow_field: Flow_Field, dt: f32) {
                 blended_dir.y /= mag
             }
 
-            posAdd := Vector2f{
-                blended_dir.x * distanceMove,
-                blended_dir.y * distanceMove,
+            pos_add := Vector2f{
+                blended_dir.x * distance_move,
+                blended_dir.y * distance_move,
             }
 
             // Store this for the overlap check
-            next_pos := enemy.pos + posAdd
+            next_pos := enemy.pos + pos_add
 
-            moveOk := true
+            move_ok := true
 
             for &other_enemy in enemies {
                 if &enemy == &other_enemy { 
@@ -94,17 +94,17 @@ update_enemies :: proc(enemies: []Enemy, flow_field: Flow_Field, dt: f32) {
 
                 if check_overlap(next_pos, other_enemy.pos, ENEMY_SIZE, ENEMY_SIZE) {
                     // Compute vector from this enemy to the other.
-                    directionToOther := Vector2f {
+                    direction_to_other := Vector2f {
                         other_enemy.pos.x - enemy.pos.x,
                         other_enemy.pos.y - enemy.pos.y,
                     }
                     // Calculate the magnitude.
-                    mag := math.sqrt(directionToOther.x * directionToOther.x + directionToOther.y * directionToOther.y)
+                    mag := math.sqrt(direction_to_other.x * direction_to_other.x + direction_to_other.y * direction_to_other.y)
                     if mag > 0.01 {
                         // Normalize directionToOther.
                         norm := Vector2f {
-                            directionToOther.x / mag,
-                            directionToOther.y / mag,
+                            direction_to_other.x / mag,
+                            direction_to_other.y / mag,
                         }
                         // Calculate the dot product with the movement direction.
                         dot := norm.x * blended_dir.x + norm.y * blended_dir.y
@@ -112,50 +112,50 @@ update_enemies :: proc(enemies: []Enemy, flow_field: Flow_Field, dt: f32) {
                         if dot > 1.0 { dot = 1.0 }
                         if dot < -1.0 { dot = -1.0 }
                         // Get the angle between the two directions.
-                        angleBtw := math.acos(dot)
+                        angle_btw := math.acos(dot)
                         // If the angle is less than 45° (pi/4), cancel the move.
-                        if angleBtw < math.PI/4.0 {
-                            moveOk = false
+                        if angle_btw < math.PI/4.0 {
+                            move_ok = false
                             break
                         }
                     }
                 }
             }
 
-            if moveOk {
+            if move_ok {
                 spacing: f32 = GRID_TILE_SIZE / 2.0 // or adjust to your comfort
 
                 // Save original pos
                 original_pos := enemy.pos
                 
                 // X axis
-                if posAdd.x != 0.0 {
-                    check_x := enemy.pos.x + posAdd.x + math.copy_sign(spacing, posAdd.x)
+                if pos_add.x != 0.0 {
+                    check_x := enemy.pos.x + pos_add.x + math.copy_sign(spacing, pos_add.x)
                     x := int(check_x)
                     y := int(enemy.pos.y)
                     grid_x := x / GRID_TILE_SIZE
                     grid_y := y / GRID_TILE_SIZE
                 
                     if flow_field.nodes[grid_y * GRID_COLUMNS + grid_x].is_walkable {
-                        enemy.pos.x += posAdd.x * 0.9
+                        enemy.pos.x += pos_add.x * 0.9
                     }
                 }
                 
                 // Y axis
-                if posAdd.y != 0.0 {
-                    check_y := enemy.pos.y + posAdd.y + math.copy_sign(spacing, posAdd.y)
+                if pos_add.y != 0.0 {
+                    check_y := enemy.pos.y + pos_add.y + math.copy_sign(spacing, pos_add.y)
                     x := int(enemy.pos.x)
                     y := int(check_y)
                     grid_x := x / GRID_TILE_SIZE
                     grid_y := y / GRID_TILE_SIZE
                 
                     if flow_field.nodes[grid_y * GRID_COLUMNS + grid_x].is_walkable {
-                        enemy.pos.y += posAdd.y * 0.9
+                        enemy.pos.y += pos_add.y * 0.9
                     }
                 }
             
                 // Smooth draw position
-                enemy.posDraw = linalg.lerp(enemy.posDraw, enemy.pos, 0.07)
+                enemy.pos_draw = linalg.lerp(enemy.pos_draw, enemy.pos, 0.07)
             }
         }
     }
