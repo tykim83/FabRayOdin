@@ -2,12 +2,8 @@ package fabrayodin
 
 import "core:fmt"
 import json "core:encoding/json"
-import "core:math"
-import "core:mem"
 import vmem "core:mem/virtual"
 import rl "vendor:raylib"
-
-
 
 TILEMAP_JSON_DATA :: #load("/Assets/Tilemap/tilemap_test.json")
 
@@ -40,54 +36,6 @@ init_tilemap :: proc(loc := #caller_location) -> Tilemap {
 
 destroy_tilemap :: proc(tilemap: ^Tilemap, loc := #caller_location) {
     vmem.arena_destroy(&tilemap.arena, loc)
-}
-
-draw_tilemap :: proc(tilemap: Tilemap) {
-    for layer in tilemap.layers {
-        if !layer.is_visible { continue }
-
-        for tile, index in layer.data {
-            row := index / GRID_COLUMNS
-            col := index % GRID_COLUMNS
-
-            tile_x := col * GRID_TILE_SIZE
-            tile_y := row * GRID_TILE_SIZE
-
-            // Draw floor
-            if (tile == -1) {
-                if ((row + col) % 2 == 0) {
-                    rl.DrawRectangle(i32(tile_x), i32(tile_y), GRID_TILE_SIZE, GRID_TILE_SIZE, rl.WHITE)
-                } else {
-                    rl.DrawRectangle(i32(tile_x), i32(tile_y), GRID_TILE_SIZE, GRID_TILE_SIZE, rl.LIGHTGRAY)
-                }
-                continue
-            }
-
-            // Draw Walls
-            rl.DrawRectangle(i32(tile_x), i32(tile_y), GRID_TILE_SIZE, GRID_TILE_SIZE, rl.RED)
-        }
-    }
-}
-
-// I might remove this
-check_wall_in_neighbors :: proc(pos : Vector2i, tilemap: Tilemap) -> bool {
-    for row in pos.y - 1..<pos.y + 2 {
-        for col in pos.x - 1..<pos.x + 2 {
-            if row == -1 || col == -1 {
-                continue
-            }
-
-            for layer in tilemap.layers {
-                if !layer.is_collision { continue }
-                
-                tile := layer.data[row * GRID_COLUMNS + col] 
-                if (tile == 0) { 
-                    return true;
-                }         
-            }
-        }
-    }
-    return false;
 }
 
 check_tilemap_collision :: proc(entity: ^$T, tilemap: Tilemap) {

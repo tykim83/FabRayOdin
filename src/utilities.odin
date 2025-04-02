@@ -9,7 +9,7 @@ get_rect_from_centre_world_pos_and_size :: proc(entity: $T) -> Vector2f {
     }
 }
 
-get_grid_pos_from_index :: proc(index: int) -> [2]int {
+get_grid_pos_from_index :: proc(index: int) -> Vector2i {
     row := index / GRID_COLUMNS
     col := index % GRID_COLUMNS
     return { col, row }

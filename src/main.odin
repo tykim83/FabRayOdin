@@ -38,10 +38,12 @@ main :: proc() {
 	rl.SetTargetFPS(60)      
 
     // Init Game
-    // init_enemies(); defer destroy_enemies()
+    enemies := init_enemies(); defer destroy_enemies(enemies)
     car := init_car()
-    // gun := init_gun(car)
-
+    gun_1 := init_gun(car, {+32, -20}) // top right
+	gun_2 := init_gun(car, {-32, -20}) // top left
+	gun_3 := init_gun(car, {-32, +20}) // bottom left
+	gun_4 := init_gun(car, {+32, +20}) // bottom right
     tilemap := init_tilemap(); defer destroy_tilemap(&tilemap)
     flow_field := init_pathfinding(tilemap); defer destroy_pathfinding(&flow_field)
 
@@ -51,25 +53,30 @@ main :: proc() {
         frame_time := rl.GetFrameTime()
 
         // Update Game
-        // spawn_enemies(frame_time)
+        spawn_enemies(&enemies, frame_time)
         update_car(&car, frame_time, tilemap, &flow_field)
-        // update_gun(&gun, car, frame_time)
-        // update_enemies(mouse_pos, car, frame_time, tilemap, astar_grid)   
+        update_enemies(enemies[:], flow_field, frame_time)   
+        update_gun(&gun_1, car, &enemies, frame_time)
+        update_gun(&gun_2, car, &enemies, frame_time)
+        update_gun(&gun_3, car, &enemies, frame_time)
+        update_gun(&gun_4, car, &enemies, frame_time)
 
-        rl.BeginDrawing()
-        defer rl.EndDrawing()
+        rl.BeginDrawing(); defer rl.EndDrawing()
         rl.ClearBackground(rl.RAYWHITE)
         
         // Draw Game
-        // draw_tilemap(tilemap)
-        // draw_enemies()
+        draw_enemies(enemies[:])
         draw_pathfinding(flow_field)
         draw_car(car)
-        // draw_gun(gun)
+        draw_gun(gun_1)
+        draw_gun(gun_2)
+        draw_gun(gun_3)
+        draw_gun(gun_4)
 
         // Draw Debug
         rl.DrawFPS(200, 10)
-        // text := fmt.caprintf("Total enemies: {}", len(active_enemies))
-        // rl.DrawText(text, 300, 10, 25, rl.RED)      
+        text := fmt.caprintf("Total enemies: {}", len(enemies))
+        rl.DrawText(text, 300, 10, 25, rl.RED)      
+        delete(text)
 	}
 }
