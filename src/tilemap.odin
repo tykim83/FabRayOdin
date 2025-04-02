@@ -3,6 +3,8 @@ package fabrayodin
 import "core:fmt"
 import json "core:encoding/json"
 import "core:math"
+import "core:mem"
+import vmem "core:mem/virtual"
 import rl "vendor:raylib"
 
 
@@ -10,25 +12,34 @@ import rl "vendor:raylib"
 TILEMAP_JSON_DATA :: #load("/Assets/Tilemap/tilemap_test.json")
 
 Layer :: struct {
-    name: string,
-    tileset: string,
-    is_visible: bool,
+    name:         string,
+    tileset:      string,
+    is_visible:   bool,
     is_collision: bool,
-    data: []int,
+    data:         []int,
 }
 
 Tilemap :: struct {
-    layers: []Layer,
-    collision_rect : []rl.Rectangle
+    layers:          []Layer,
+    collision_rect : []rl.Rectangle,
+    arena: vmem.Arena,
 }
 
-init_tilemap :: proc(allocator := context.allocator, loc := #caller_location) -> Tilemap {
-    tilemap: Tilemap
-    json.unmarshal(TILEMAP_JSON_DATA, &tilemap, allocator = allocator)
+init_tilemap :: proc(loc := #caller_location) -> Tilemap {
+    tilemap_arena: vmem.Arena
+    tilemap_arena_allocator := vmem.arena_allocator(&tilemap_arena)
 
-    tilemap.collision_rect = create_tilemap_collision_rects(tilemap, allocator, loc)
+    tilemap: Tilemap
+    json.unmarshal(TILEMAP_JSON_DATA, &tilemap, allocator = tilemap_arena_allocator)
+
+    tilemap.collision_rect = create_tilemap_collision_rects(tilemap, tilemap_arena_allocator, loc)
+    tilemap.arena = tilemap_arena
 
     return tilemap
+}
+
+destroy_tilemap :: proc(tilemap: ^Tilemap, loc := #caller_location) {
+    vmem.arena_destroy(&tilemap.arena, loc)
 }
 
 draw_tilemap :: proc(tilemap: Tilemap) {
@@ -143,7 +154,7 @@ resolve_collision :: proc(entity: ^$T, tile: ^rl.Rectangle) {
 
 @(private = "file")
 create_tilemap_collision_rects :: proc(tilemap: Tilemap, allocator := context.allocator, loc := #caller_location) -> []rl.Rectangle {
-    rects := make([dynamic]rl.Rectangle, 0, context.allocator, loc)
+    rects := make([dynamic]rl.Rectangle, 0, allocator, loc)
 
     for layer in tilemap.layers {
         if !layer.is_collision { continue }

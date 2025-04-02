@@ -41,7 +41,8 @@ main :: proc() {
     // init_enemies(); defer destroy_enemies()
     car := init_car()
     // gun := init_gun(car)
-    tilemap := init_tilemap()
+
+    tilemap := init_tilemap(); defer destroy_tilemap(&tilemap)
     flow_field := init_pathfinding(tilemap); defer destroy_pathfinding(&flow_field)
 
 	for !rl.WindowShouldClose() { 

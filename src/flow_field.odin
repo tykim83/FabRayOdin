@@ -57,7 +57,8 @@ init_flow_field :: proc(region_min, region_max: Vector2i, allocator := context.a
 
     return Flow_Field {
         nodes = flow_grid,
-        target = { 0, 0 }
+        target = { 0, 0 },
+        allocator = allocator
     }
 }
 
@@ -121,7 +122,7 @@ calculate_cost :: proc(flow_field: Flow_Field, new_target_index: int, loc := #ca
     }
 
     openSet: queue.Queue(^Node)
-    queue.init(&openSet)
+    queue.init(&openSet, allocator = grid_arena_allocator)
 
     node := &flow_grid[new_target_index]
     node^.cost = 0
