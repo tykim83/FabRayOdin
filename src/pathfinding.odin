@@ -57,11 +57,12 @@ draw_pathfinding :: proc(flow_field: Flow_Field) {
         } 
 
         // Draw Cost
-        text := fmt.ctprintfln("%.1f ", node.cost)
+        text := fmt.caprintf("%.1f ", node.cost)
         text_width := rl.MeasureText(text, 20)
         text_x := i32(tile.x) + GRID_TILE_SIZE / 2 - text_width / 2
         text_y := i32(tile.y) + GRID_TILE_SIZE / 2 - 10
         rl.DrawText(text, text_x, text_y, 20, rl.GRAY)
+        delete(text)
         
         // Draw Arrow
         line_length: f32 = 32;

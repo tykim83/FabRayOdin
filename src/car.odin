@@ -93,7 +93,10 @@ update_car :: proc(car: ^Car, dt: f32, tilemap: Tilemap, flow_field: ^Flow_Field
 draw_car :: proc(car: Car) {
     speed_pixels := linalg.length(car.rb.velocity)
     speed_kmh : f32 = speed_pixels
-    rl.DrawText(fmt.caprintf("Speed: %.1f km/h", speed_kmh), 5, 10, 20, rl.DARKGRAY)
+
+    speed_text := fmt.caprintf("Speed: %.1f km/h", speed_kmh)
+    rl.DrawText(speed_text, 5, 10, 20, rl.DARKGRAY)
+    delete(speed_text)
 
 	draw_rigid_body(car.rb, car_texture)
 }
@@ -103,6 +106,7 @@ resolve_collision_car_wall_sat :: proc(car: ^Car, wall: rl.Rectangle) {
     carCorners := get_rigid_body_collision_box(car.rb)
 
     wallCorners: [4]rl.Vector2 = {
+        
         { wall.x, wall.y },
         { wall.x + wall.width, wall.y },
         { wall.x + wall.width, wall.y + wall.height },
