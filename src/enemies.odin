@@ -22,6 +22,10 @@ init_enemies :: proc(allocator := context.allocator, loc := #caller_location) ->
     return enemies
 }
 
+destroy_enemies :: proc(enemies: [dynamic]Enemy, loc := #caller_location) {
+    delete(enemies, loc)
+}
+
 spawn_enemies :: proc(enemies: ^[dynamic]Enemy, frame_time: f32, loc := #caller_location) {
     global_spawn_timer += frame_time
     if enemy_count < 1000 && global_spawn_timer > ENEMY_SPAWN_TIMER {

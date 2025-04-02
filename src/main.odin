@@ -38,7 +38,7 @@ main :: proc() {
 	rl.SetTargetFPS(60)      
 
     // Init Game
-    enemies := init_enemies(); // defer destroy_enemies()
+    enemies := init_enemies(); defer destroy_enemies(enemies)
     car := init_car()
     // gun := init_gun(car)
     tilemap := init_tilemap(); defer destroy_tilemap(&tilemap)
