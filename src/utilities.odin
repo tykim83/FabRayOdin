@@ -28,3 +28,7 @@ get_grid_pos_from_world_pos :: proc(pos: Vector2f) -> Vector2i32 {
 get_world_pos_from_grid_pos :: proc(col, row: int) -> Vector2f {
     return { f32(col * GRID_TILE_SIZE), f32(row * GRID_TILE_SIZE) }
 }
+
+length_squared :: proc(v: Vector2f) -> f32 {
+    return v.x * v.x + v.y * v.y
+}

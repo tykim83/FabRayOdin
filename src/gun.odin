@@ -43,28 +43,24 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
 	gun.pos = car.rb.position + rotated_offset
 
     // Find closest enemy
-    closest_distance := math.max(int)
-    index := -1
-    for enemy, i in enemies {
-        direction := rl.Vector2{
-            enemy.pos.x - gun.pos.x,
-            enemy.pos.y - gun.pos.y,
-        }
-        len := math.sqrt(direction.x * direction.x + direction.y * direction.y)
+    current_distance := math.max(f32)
+    if gun.bullet_enemy != nil {
+        delta := gun.bullet_enemy.pos - gun.pos
+        current_distance = length_squared(delta)
+    }   
+    for &enemy, i in enemies {
+        delta := enemy.pos - gun.pos
+        dist_sq := length_squared(delta)
 
-        if int(len) <= closest_distance {
-            closest_distance = int(len)
-            index = i
+        if dist_sq <= current_distance {
+            gun.bullet_enemy = &enemy
+            current_distance = dist_sq
         }
     }
 
     // Update angle
-    if index != -1 {
-        target_enemy := enemies[index]
-        direction := rl.Vector2{
-            target_enemy.pos.x - gun.pos.x,
-            target_enemy.pos.y - gun.pos.y,
-        }
+    if gun.bullet_enemy != nil && gun.bullet_enemy.is_alive {
+        direction := gun.bullet_enemy.pos - gun.pos
         target_angle := math.atan2(direction.y, direction.x)
         gun.angle = math.angle_lerp(gun.angle, target_angle, 0.05) 
     }
@@ -74,26 +70,20 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
     if gun.bullet_count < 1 && gun.bullet_spawn_timer > BULLET_SPAWN_TIMER {
         gun.bullet_count += 1
         gun.bullet_spawn_timer = 0.0
-        pos := rl.Vector2 {
-            gun.pos.x + math.cos(gun.angle) * 16,
-            gun.pos.y + math.sin(gun.angle) * 16,
-        };  
 
-        gun.bullet_enemy = &enemies[index]
+        forward := Vector2f { math.cos(gun.angle), math.sin(gun.angle) }
+        pos := gun.pos + forward * 16
+
         gun.bullet_pos = pos
     }
 
     // Update bullet
     if gun.bullet_count > 0 {
-        direction := rl.Vector2 {
-            gun.bullet_enemy.pos.x - gun.bullet_pos.x,
-            gun.bullet_enemy.pos.y - gun.bullet_pos.y,
-        }
+        direction := gun.bullet_enemy.pos - gun.bullet_pos
         direction = linalg.normalize0(direction)
         
         // update enemy position using the normalized direction
-        gun^.bullet_pos.x += direction.x * BULLET_SPEED * dt
-        gun^.bullet_pos.y += direction.y * BULLET_SPEED * dt
+        gun^.bullet_pos += direction * BULLET_SPEED * dt
 
         if rl.CheckCollisionCircles(gun.bullet_pos, 8, gun.bullet_enemy.pos, ENEMY_SIZE) {
             damage_enemy(gun.bullet_enemy, 1)
