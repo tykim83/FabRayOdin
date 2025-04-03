@@ -8,12 +8,13 @@ import rl "vendor:raylib"
 ENEMY_SPEED :: 100
 ENEMY_SIZE :: 10
 ENEMY_SPAWN_TIMER :: 0.3
-enemy_count := 0
 global_spawn_timer: f32 = 0.2
 
 Enemy :: struct {
     pos: Vector2f,
     pos_draw : Vector2f,
+    is_alive: bool,
+    hp: int,
 }
 
 init_enemies :: proc(allocator := context.allocator, loc := #caller_location) -> [dynamic]Enemy {
@@ -28,14 +29,22 @@ destroy_enemies :: proc(enemies: [dynamic]Enemy, loc := #caller_location) {
 
 spawn_enemies :: proc(enemies: ^[dynamic]Enemy, frame_time: f32, loc := #caller_location) {
     global_spawn_timer += frame_time
-    if enemy_count < 1000 && global_spawn_timer > ENEMY_SPAWN_TIMER {
-        enemy_count += 1
+    if len(enemies) < 100 && global_spawn_timer > ENEMY_SPAWN_TIMER {
         global_spawn_timer = 0.0
 
         enemy := Enemy {
-            pos = {70, 70}
+            pos = {70, 70},
+            is_alive = true,
+            hp = 1,
         }
         append(enemies, enemy, loc)
+    }
+}
+
+damage_enemy :: proc(enemy: ^Enemy, damage: int) {
+    enemy.hp -= damage
+    if enemy.hp <= 0 {
+        enemy.is_alive = false        
     }
 }
 
@@ -45,7 +54,9 @@ draw_enemies :: proc(enemies: []Enemy) {
     }
 }
 
-update_enemies :: proc(enemies: []Enemy, flow_field: Flow_Field, dt: f32) {
+update_enemies :: proc(enemies: ^[dynamic]Enemy, flow_field: Flow_Field, dt: f32) {
+    clean_dead_enemies(enemies)
+
     for &enemy in enemies {
 
         delta := Vector2f {
@@ -157,6 +168,16 @@ update_enemies :: proc(enemies: []Enemy, flow_field: Flow_Field, dt: f32) {
                 // Smooth draw position
                 enemy.pos_draw = linalg.lerp(enemy.pos_draw, enemy.pos, 0.07)
             }
+        }
+    }
+}
+
+@(private = "file")
+clean_dead_enemies :: proc(enemies: ^[dynamic]Enemy) {
+    fmt.printfln("Total enemies: %d", len(enemies))
+    for i := len(enemies) - 1; i >= 0; i -= 1 {
+        if !enemies[i].is_alive {
+            unordered_remove(enemies, i)
         }
     }
 }
