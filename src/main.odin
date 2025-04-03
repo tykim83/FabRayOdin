@@ -55,7 +55,7 @@ main :: proc() {
         // Update Game
         spawn_enemies(&enemies, frame_time)
         update_car(&car, frame_time, tilemap, &flow_field)
-        update_enemies(enemies[:], flow_field, frame_time)   
+        update_enemies(&enemies, flow_field, frame_time)   
         update_gun(&gun_1, car, &enemies, frame_time)
         update_gun(&gun_2, car, &enemies, frame_time)
         update_gun(&gun_3, car, &enemies, frame_time)

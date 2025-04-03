@@ -7,16 +7,16 @@ import rl "vendor:raylib"
 
 BULLET_SPEED :: 300
 BULLET_SPAWN_TIMER :: 5.0
-bullet_count := 0
-global_bullet_spawn_timer: f32 = 0.0
 
 Gun :: struct {
     offset: Vector2f,
 	pos: Vector2f,
     half_size: Vector2f,
     angle: f32,
+    bullet_count: int,
+    bullet_spawn_timer: f32,
     bullet_pos: Vector2f,
-    bullet_enemy: int
+    bullet_enemy: ^Enemy,
 }
 
 init_gun :: proc(car: Car, offset: Vector2f) -> Gun {  
@@ -25,6 +25,8 @@ init_gun :: proc(car: Car, offset: Vector2f) -> Gun {
         pos = car.rb.position + offset,
         half_size = { 16, 8 },
         angle = 0,
+        bullet_count = 0,
+        bullet_spawn_timer = 0,
     }
 }
 
@@ -68,25 +70,24 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
     }
 
     // Spawn bullet
-    global_bullet_spawn_timer += dt
-    if bullet_count < 1 && global_bullet_spawn_timer > BULLET_SPAWN_TIMER {
-        bullet_count += 1
-        global_bullet_spawn_timer = 0.0
+    gun.bullet_spawn_timer += dt
+    if gun.bullet_count < 1 && gun.bullet_spawn_timer > BULLET_SPAWN_TIMER {
+        gun.bullet_count += 1
+        gun.bullet_spawn_timer = 0.0
         pos := rl.Vector2 {
             gun.pos.x + math.cos(gun.angle) * 16,
             gun.pos.y + math.sin(gun.angle) * 16,
         };  
 
-        gun.bullet_enemy = index
+        gun.bullet_enemy = &enemies[index]
         gun.bullet_pos = pos
     }
 
     // Update bullet
-    if bullet_count > 0 {
-        target_enemy := enemies[gun.bullet_enemy]
+    if gun.bullet_count > 0 {
         direction := rl.Vector2 {
-            target_enemy.pos.x - gun.bullet_pos.x,
-            target_enemy.pos.y - gun.bullet_pos.y,
+            gun.bullet_enemy.pos.x - gun.bullet_pos.x,
+            gun.bullet_enemy.pos.y - gun.bullet_pos.y,
         }
         direction = linalg.normalize0(direction)
         
@@ -94,9 +95,9 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
         gun^.bullet_pos.x += direction.x * BULLET_SPEED * dt
         gun^.bullet_pos.y += direction.y * BULLET_SPEED * dt
 
-        if rl.CheckCollisionCircles(gun.bullet_pos, 8, target_enemy.pos, ENEMY_SIZE) {
-            unordered_remove(enemies, gun.bullet_enemy)
-            bullet_count = 0
+        if rl.CheckCollisionCircles(gun.bullet_pos, 8, gun.bullet_enemy.pos, ENEMY_SIZE) {
+            damage_enemy(gun.bullet_enemy, 1)
+            gun.bullet_count = 0
         }
     }
 }
@@ -121,7 +122,7 @@ draw_gun :: proc(gun: Gun) {
     rl.DrawLineV(gun.pos, end_point, rl.RED);
 
     // Draw bullet
-    if bullet_count > 0 {
+    if gun.bullet_count > 0 {
         rl.DrawCircle(i32(gun.bullet_pos.x), i32(gun.bullet_pos.y), 8, rl.RED)
     }
 }
