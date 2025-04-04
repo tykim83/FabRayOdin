@@ -35,15 +35,15 @@ main :: proc() {
 
     // Init Raylib
 	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Test"); defer rl.CloseWindow()
-	rl.SetTargetFPS(60)      
+	rl.SetTargetFPS(120)      
 
     // Init Game
     enemies := init_enemies(); defer destroy_enemies(enemies)
     car := init_car()
-    gun_1 := init_gun(car, .Top_Right) // top right
-	gun_2 := init_gun(car, .Top_Left) // top left
-	gun_3 := init_gun(car, .Bottom_Left) // bottom left
-	gun_4 := init_gun(car, .Bottom_Right) // bottom right
+    gun_1 := init_gun(car, .Top_Right); defer destroy_gun(&gun_1)
+	gun_2 := init_gun(car, .Top_Left); defer destroy_gun(&gun_2)
+	gun_3 := init_gun(car, .Bottom_Left); defer destroy_gun(&gun_3)
+	gun_4 := init_gun(car, .Bottom_Right); defer destroy_gun(&gun_4)
     tilemap := init_tilemap(); defer destroy_tilemap(&tilemap)
     flow_field := init_pathfinding(tilemap); defer destroy_pathfinding(&flow_field)
 
