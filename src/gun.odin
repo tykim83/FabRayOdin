@@ -3,35 +3,65 @@ package fabrayodin
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
+import "core:mem"
 import rl "vendor:raylib"
 
 BULLET_SPEED :: 300
 BULLET_SPAWN_TIMER :: 5.0
+
+GUN_OFFSETS : [Anchor_Point]Vector2f = #partial {
+    .Top_Right = {+32, -20},
+    .Top_Left = {-32, -20},
+    .Bottom_Left = {-32, +20},
+    .Bottom_Right = {+32, +20},
+}
 
 Gun :: struct {
     offset: Vector2f,
 	pos: Vector2f,
     half_size: Vector2f,
     angle: f32,
-    bullet_count: int,
+
     bullet_spawn_timer: f32,
-    bullet_pos: Vector2f,
-    bullet_enemy: ^Enemy,
+    bullets: [dynamic]Bullet,
+
+    max_burst: int,
+    current_burst: int,
+    burst_timer: f32,
+    burst_delay: f32,
 }
 
-init_gun :: proc(car: Car, offset: Vector2f) -> Gun {  
+Bullet :: struct {
+    pos: Vector2f,
+    direction: Vector2f,
+}
+
+init_gun :: proc(car: Car, anchor_point: Anchor_Point, allocator := context.allocator, loc := #caller_location) -> Gun {  
+    offset := GUN_OFFSETS[anchor_point]
+    bullets := make([dynamic]Bullet, 0, allocator, loc)
+
     return Gun {
         offset = offset,
         pos = car.rb.position + offset,
         half_size = { 16, 8 },
         angle = 0,
-        bullet_count = 0,
         bullet_spawn_timer = 0,
+        bullets = bullets,
+
+        max_burst = 3,
+        current_burst = 0,
+        burst_timer = 0,
+        burst_delay = 0.15,
     }
 }
 
+destroy_gun :: proc(gun: ^Gun, loc := #caller_location) {  
+    if gun == nil { return }
+    delete(gun.bullets, loc)
+}
+
 update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
-    // Update Pos
+    // Update gun pos
 	sin_theta := math.sin(car.rb.angle)
 	cos_theta := math.cos(car.rb.angle)
 
@@ -42,54 +72,28 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
 
 	gun.pos = car.rb.position + rotated_offset
 
-    // Find closest enemy
+    // Update gun angle
+    closest_direction : Vector2f = { 0, 0 }
     current_distance := math.max(f32)
-    if gun.bullet_enemy != nil {
-        delta := gun.bullet_enemy.pos - gun.pos
-        current_distance = length_squared(delta)
-    }   
-    for &enemy, i in enemies {
+
+    for enemy, i in enemies {
+        if !enemy.is_alive { continue }
+
         delta := enemy.pos - gun.pos
         dist_sq := length_squared(delta)
 
         if dist_sq <= current_distance {
-            gun.bullet_enemy = &enemy
+            closest_direction = delta
             current_distance = dist_sq
         }
     }
 
-    // Update angle
-    if gun.bullet_enemy != nil && gun.bullet_enemy.is_alive {
-        direction := gun.bullet_enemy.pos - gun.pos
-        target_angle := math.atan2(direction.y, direction.x)
-        gun.angle = math.angle_lerp(gun.angle, target_angle, 0.05) 
-    }
+    target_angle := math.atan2(closest_direction.y, closest_direction.x)
+    gun.angle = math.angle_lerp(gun.angle, target_angle, 0.05) 
 
-    // Spawn bullet
-    gun.bullet_spawn_timer += dt
-    if gun.bullet_count < 1 && gun.bullet_spawn_timer > BULLET_SPAWN_TIMER {
-        gun.bullet_count += 1
-        gun.bullet_spawn_timer = 0.0
+    spawn_bullet(gun, dt)
 
-        forward := Vector2f { math.cos(gun.angle), math.sin(gun.angle) }
-        pos := gun.pos + forward * 16
-
-        gun.bullet_pos = pos
-    }
-
-    // Update bullet
-    if gun.bullet_count > 0 {
-        direction := gun.bullet_enemy.pos - gun.bullet_pos
-        direction = linalg.normalize0(direction)
-        
-        // update enemy position using the normalized direction
-        gun^.bullet_pos += direction * BULLET_SPEED * dt
-
-        if rl.CheckCollisionCircles(gun.bullet_pos, 8, gun.bullet_enemy.pos, ENEMY_SIZE) {
-            damage_enemy(gun.bullet_enemy, 1)
-            gun.bullet_count = 0
-        }
-    }
+    update_bullet(gun, enemies, dt)
 }
 
 draw_gun :: proc(gun: Gun) {
@@ -112,7 +116,53 @@ draw_gun :: proc(gun: Gun) {
     rl.DrawLineV(gun.pos, end_point, rl.RED);
 
     // Draw bullet
-    if gun.bullet_count > 0 {
-        rl.DrawCircle(i32(gun.bullet_pos.x), i32(gun.bullet_pos.y), 8, rl.RED)
+    for bullet in gun.bullets {
+        rl.DrawCircle(i32(bullet.pos.x), i32(bullet.pos.y), 4, rl.BLUE)
+    }
+}
+
+@(private = "file")
+update_bullet :: proc(gun: ^Gun, enemies: ^[dynamic]Enemy, dt: f32) {
+    // Update bullet
+
+    #reverse for &bullet, i in gun.bullets {
+        bullet.pos += bullet.direction * BULLET_SPEED * dt
+
+        for &enemy in enemies {
+            if rl.CheckCollisionCircles(bullet.pos, 8, enemy.pos, ENEMY_SIZE) {
+                damage_enemy(&enemy, 1)
+                unordered_remove(&gun.bullets, i)
+            }
+        }
+    }
+}
+
+@(private = "file")
+spawn_bullet :: proc(gun: ^Gun, dt: f32) {
+    if gun.current_burst == 0 {
+        gun.bullet_spawn_timer += dt
+        if gun.bullet_spawn_timer > BULLET_SPAWN_TIMER {
+            gun.bullet_spawn_timer = 0.0
+            gun.current_burst = gun.max_burst
+            gun.burst_timer = gun.burst_delay
+        }
+    }
+
+    if gun.current_burst > 0 {
+        gun.burst_timer += dt
+        if gun.burst_timer > gun.burst_delay {
+            gun.burst_timer = 0.0
+            gun.current_burst -= 1
+
+            // Spawn bullet
+            forward := Vector2f { math.cos(gun.angle), math.sin(gun.angle) }
+            pos := gun.pos + forward * 16
+        
+            bullet := Bullet {
+                pos = pos,
+                direction = forward,
+            }
+            append(&gun.bullets, bullet)
+        }
     }
 }
