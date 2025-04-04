@@ -21,11 +21,14 @@ Gun :: struct {
 	pos: Vector2f,
     half_size: Vector2f,
     angle: f32,
-    // bullet_count: int,
+
     bullet_spawn_timer: f32,
-    // bullet_pos: Vector2f,
-    closest_enemy: ^Enemy,
     bullets: [dynamic]Bullet,
+
+    max_burst: int,
+    current_burst: int,
+    burst_timer: f32,
+    burst_delay: f32,
 }
 
 Bullet :: struct {
@@ -44,6 +47,11 @@ init_gun :: proc(car: Car, anchor_point: Anchor_Point, allocator := context.allo
         angle = 0,
         bullet_spawn_timer = 0,
         bullets = bullets,
+
+        max_burst = 3,
+        current_burst = 0,
+        burst_timer = 0,
+        burst_delay = 0.15,
     }
 }
 
@@ -83,32 +91,9 @@ update_gun :: proc(gun: ^Gun, car: Car, enemies: ^[dynamic]Enemy, dt: f32) {
     target_angle := math.atan2(closest_direction.y, closest_direction.x)
     gun.angle = math.angle_lerp(gun.angle, target_angle, 0.05) 
 
-    // Spawn bullet
-    gun.bullet_spawn_timer += dt
-    if gun.bullet_spawn_timer > BULLET_SPAWN_TIMER {
-        gun.bullet_spawn_timer = 0.0
+    spawn_bullet(gun, dt)
 
-        forward := Vector2f { math.cos(gun.angle), math.sin(gun.angle) }
-        pos := gun.pos + forward * 16
-
-        bullet := Bullet {
-            pos = pos,
-            direction = forward,
-        }
-        append(&gun.bullets, bullet)
-    }
-
-    // Update bullet
-    for &bullet, i in gun.bullets {
-        bullet.pos += bullet.direction * BULLET_SPEED * dt
-
-        for &enemy in enemies {
-            if rl.CheckCollisionCircles(bullet.pos, 8, enemy.pos, ENEMY_SIZE) {
-                damage_enemy(&enemy, 1)
-                unordered_remove(&gun.bullets, i)
-            }
-        }
-    }
+    update_bullet(gun, enemies, dt)
 }
 
 draw_gun :: proc(gun: Gun) {
@@ -133,5 +118,51 @@ draw_gun :: proc(gun: Gun) {
     // Draw bullet
     for bullet in gun.bullets {
         rl.DrawCircle(i32(bullet.pos.x), i32(bullet.pos.y), 4, rl.BLUE)
+    }
+}
+
+@(private = "file")
+update_bullet :: proc(gun: ^Gun, enemies: ^[dynamic]Enemy, dt: f32) {
+    // Update bullet
+
+    #reverse for &bullet, i in gun.bullets {
+        bullet.pos += bullet.direction * BULLET_SPEED * dt
+
+        for &enemy in enemies {
+            if rl.CheckCollisionCircles(bullet.pos, 8, enemy.pos, ENEMY_SIZE) {
+                damage_enemy(&enemy, 1)
+                unordered_remove(&gun.bullets, i)
+            }
+        }
+    }
+}
+
+@(private = "file")
+spawn_bullet :: proc(gun: ^Gun, dt: f32) {
+    if gun.current_burst == 0 {
+        gun.bullet_spawn_timer += dt
+        if gun.bullet_spawn_timer > BULLET_SPAWN_TIMER {
+            gun.bullet_spawn_timer = 0.0
+            gun.current_burst = gun.max_burst
+            gun.burst_timer = gun.burst_delay
+        }
+    }
+
+    if gun.current_burst > 0 {
+        gun.burst_timer += dt
+        if gun.burst_timer > gun.burst_delay {
+            gun.burst_timer = 0.0
+            gun.current_burst -= 1
+
+            // Spawn bullet
+            forward := Vector2f { math.cos(gun.angle), math.sin(gun.angle) }
+            pos := gun.pos + forward * 16
+        
+            bullet := Bullet {
+                pos = pos,
+                direction = forward,
+            }
+            append(&gun.bullets, bullet)
+        }
     }
 }
