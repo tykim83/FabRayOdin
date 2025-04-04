@@ -40,10 +40,10 @@ main :: proc() {
     // Init Game
     enemies := init_enemies(); defer destroy_enemies(enemies)
     car := init_car()
-    gun_1 := init_gun(car, {+32, -20}) // top right
-	gun_2 := init_gun(car, {-32, -20}) // top left
-	gun_3 := init_gun(car, {-32, +20}) // bottom left
-	gun_4 := init_gun(car, {+32, +20}) // bottom right
+    gun_1 := init_gun(car, .Top_Right) // top right
+	gun_2 := init_gun(car, .Top_Left) // top left
+	gun_3 := init_gun(car, .Bottom_Left) // bottom left
+	gun_4 := init_gun(car, .Bottom_Right) // bottom right
     tilemap := init_tilemap(); defer destroy_tilemap(&tilemap)
     flow_field := init_pathfinding(tilemap); defer destroy_pathfinding(&flow_field)
 

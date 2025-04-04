@@ -1,5 +1,17 @@
 package fabrayodin
 
+Anchor_Point :: enum u8 {
+    Top_Left,
+    Top_Center,
+    Top_Right,
+    Center_Left,
+    Center,
+    Center_Right,
+    Bottom_Left,
+    Bottom_Center,
+    Bottom_Right,
+}
+
 get_rect_from_centre_world_pos_and_size :: proc(entity: $T) -> Vector2f {
     return rl.Rectangle{
         x = entity.pos.x - entity.size.x / 2,

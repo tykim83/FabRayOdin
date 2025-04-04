@@ -8,6 +8,13 @@ import rl "vendor:raylib"
 BULLET_SPEED :: 300
 BULLET_SPAWN_TIMER :: 5.0
 
+GUN_OFFSETS : [Anchor_Point]Vector2f = #partial {
+    .Top_Right = {+32, -20},
+    .Top_Left = {-32, -20},
+    .Bottom_Left = {-32, +20},
+    .Bottom_Right = {+32, +20},
+}
+
 Gun :: struct {
     offset: Vector2f,
 	pos: Vector2f,
@@ -19,7 +26,14 @@ Gun :: struct {
     bullet_enemy: ^Enemy,
 }
 
-init_gun :: proc(car: Car, offset: Vector2f) -> Gun {  
+Bullet :: struct {
+    pos: Vector2f,
+    enemy: ^Enemy,
+}
+
+init_gun :: proc(car: Car, anchor_point: Anchor_Point) -> Gun {  
+    offset := GUN_OFFSETS[anchor_point]
+
     return Gun {
         offset = offset,
         pos = car.rb.position + offset,
